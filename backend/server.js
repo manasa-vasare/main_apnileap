@@ -21,7 +21,7 @@ const Meeting = require("./models/Meeting");
 const ChatMessage = require("./models/ChatMessage");
 const cron = require("node-cron");
 const { sendFanOutEmail } = require("./utils/mailer");
-
+const meetingNotesAgent = require("./agents/skills/MeetingNotesAgent");
 
 const app = express();
 
@@ -147,21 +147,21 @@ function invalidateCache(boardId = null) {
   apiCache.moderatorProjectsTime = 0;
 }
 
-// ApniLeap Hub & Spoke Configurations
-const SPOKES = {
-  "3": { name: "KLE Spoke", key: "APNN", live: true, boardId: 3 },
-  "101": { name: "COEP Spoke", key: "APNN", live: true, boardId: 5 },
-  "102": { name: "MMCOEP Spoke", key: "APNN", live: true, boardId: 4 },
-  "103": { name: "RIT Spoke", key: "APNN", live: true, boardId: 6 },
+// ApniLeap Hub & Campus Configurations
+const CAMPUSES = {
+  "3": { name: "KLE Campus", key: "APNN", live: true, boardId: 3 },
+  "101": { name: "COEP Campus", key: "APNN", live: true, boardId: 5 },
+  "102": { name: "MMCOEP Campus", key: "APNN", live: true, boardId: 4 },
+  "103": { name: "RIT Campus", key: "APNN", live: true, boardId: 6 },
 };
 
-const LIVE_BOARD_IDS = Object.values(SPOKES).filter(s => s.live).map(s => s.boardId);
+const LIVE_BOARD_IDS = Object.values(CAMPUSES).filter(s => s.live).map(s => s.boardId);
 
 const CAMPUS_LABELS = {
-  "3": "kle-spoke",
-  "101": "coep-spoke",
-  "102": "mmcoep-spoke",
-  "103": "rit-spoke"
+  "3": "kle-campus",
+  "101": "coep-campus",
+  "102": "mmcoep-campus",
+  "103": "rit-campus"
 };
 
 let mockTasksStore = {
@@ -172,7 +172,7 @@ let mockTasksStore = {
 };
 
 const CAMPUS_TEAM_MEMBERS = {
-  "3": [ // KLE Spoke
+  "3": [ // KLE Campus
     { accountId: "mock-kle-1", displayName: "Rahul Sharma (Student Developer)", emailAddress: "rahul@kle.edu", email: "rahul@kle.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-kle-2", displayName: "Priya Patel (Student Developer)", emailAddress: "priya@kle.edu", email: "priya@kle.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-kle-4", displayName: "Rohit Verma (Student Developer)", emailAddress: "rohit@kle.edu", email: "rohit@kle.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
@@ -181,7 +181,7 @@ const CAMPUS_TEAM_MEMBERS = {
     { accountId: "mock-kle-mentor-2", displayName: "Prof. Rajesh Kumar (Faculty Mentor)", emailAddress: "mentor2@kle.edu", email: "mentor2@kle.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-kle-mentor-3", displayName: "Prof. Sunita Rao (Faculty Mentor)", emailAddress: "mentor3@kle.edu", email: "mentor3@kle.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } }
   ],
-  "101": [ // COEP Spoke
+  "101": [ // COEP Campus
     { accountId: "mock-coep-1", displayName: "Sneha Joshi (Student Developer)", emailAddress: "sneha@coep.edu", email: "sneha@coep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-coep-2", displayName: "Amit Waghmare (Student Developer)", emailAddress: "amit@coep.edu", email: "amit@coep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-coep-3", displayName: "Ananya Deshpande (Student Developer)", emailAddress: "ananya@coep.edu", email: "ananya@coep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
@@ -189,14 +189,14 @@ const CAMPUS_TEAM_MEMBERS = {
     { accountId: "mock-coep-mentor-2", displayName: "Dr. Vinayak Shinde (Faculty Mentor)", emailAddress: "mentor2@coep.edu", email: "mentor2@coep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-coep-mentor-3", displayName: "Dr. Shalini Patil (Faculty Mentor)", emailAddress: "mentor3@coep.edu", email: "mentor3@coep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } }
   ],
-  "102": [ // MMCOEP Spoke
+  "102": [ // MMCOEP Campus
     { accountId: "mock-mmcoep-1", displayName: "Nikhil Rane (Student Developer)", emailAddress: "nikhil@mmcoep.edu", email: "nikhil@mmcoep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-mmcoep-2", displayName: "Sayali Deshmukh (Student Developer)", emailAddress: "sayali@mmcoep.edu", email: "sayali@mmcoep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-mmcoep-3", displayName: "Tanmay Joshi (Student Developer)", emailAddress: "tanmay@mmcoep.edu", email: "tanmay@mmcoep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-mmcoep-4", displayName: "Pooja Mehta (Student Developer)", emailAddress: "pooja@mmcoep.edu", email: "pooja@mmcoep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-mmcoep-mentor-2", displayName: "Prof. Anil Sawant (Faculty Mentor)", emailAddress: "mentor2@mmcoep.edu", email: "mentor2@mmcoep.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } }
   ],
-  "103": [ // RIT Spoke
+  "103": [ // RIT Campus
     { accountId: "mock-rit-1", displayName: "Tejas Shinde (Student Developer)", emailAddress: "tejas@rit.edu", email: "tejas@rit.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-rit-2", displayName: "Priti Patil (Student Developer)", emailAddress: "priti@rit.edu", email: "priti@rit.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
     { accountId: "mock-rit-3", displayName: "Aditya Shinde (Student Developer)", emailAddress: "aditya@rit.edu", email: "aditya@rit.edu", avatarUrls: { "48x48": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" } },
@@ -228,12 +228,12 @@ function initMockData() {
 
 initMockData();
 
-app.get("/spokes", (req, res) => {
-  res.json(Object.values(SPOKES));
+app.get("/campuses", (req, res) => {
+  res.json(Object.values(CAMPUSES));
 });
 
-// GET /spokes/:boardId/members - Combined Live JIRA + Persistent MongoDB + Simulated Spoke Members
-app.get("/spokes/:boardId/members", async (req, res) => {
+// GET /campuses/:boardId/members - Combined Live JIRA + Persistent MongoDB + Simulated Campus Members
+app.get("/campuses/:boardId/members", async (req, res) => {
   const { boardId } = req.params;
   const now = Date.now();
   
@@ -277,16 +277,16 @@ app.get("/spokes/:boardId/members", async (req, res) => {
   let dbMembers = [];
   try {
     const personaMap = {
-      "3": "spoke-kle",
-      "101": "spoke-coep",
-      "102": "spoke-mmcoep",
-      "103": "spoke-rit"
+      "3": "campus-kle",
+      "101": "campus-coep",
+      "102": "campus-mmcoep",
+      "103": "campus-rit"
     };
-    const targetPersona = personaMap[boardId] || "spoke-kle";
+    const targetPersona = personaMap[boardId] || "campus-kle";
     const dbUsers = await User.find({
       $or: [
         { persona: targetPersona },
-        { spokeId: boardId }
+        { campusId: boardId }
       ]
     });
     dbMembers = dbUsers.map(u => ({
@@ -356,17 +356,17 @@ app.get("/spokes/:boardId/members", async (req, res) => {
 
 app.get("/tasks", async (req, res) => {
   const boardId = req.query.boardId || "3";
-  const spoke = SPOKES[boardId];
+  const campus = CAMPUSES[boardId];
   const now = Date.now();
 
-  if (spoke && spoke.live && shouldCheckJira()) {
+  if (campus && campus.live && shouldCheckJira()) {
     if (apiCache.tasks[boardId] && (now - apiCache.tasks[boardId].time < CACHE_EXPIRY.tasks)) {
       return res.json(apiCache.tasks[boardId].data);
     }
 
     try {
       const response = await axios.get(
-        `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+        `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
         {
           headers: {
             Authorization: `Basic ${auth}`,
@@ -379,25 +379,32 @@ app.get("/tasks", async (req, res) => {
       let issues = response.data.issues || [];
 
       // Auto-Labeling Isolation for newly provisioned Agile boards
-      if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
+      if (LIVE_BOARD_IDS.includes(campus.boardId)) {
         issues = issues.filter(issue => {
           const labels = issue.fields?.labels || [];
           if (boardId === "3") {
-            // KLE Spoke: Show issues labeled "kle-spoke" OR issues that don't have other campus labels (preserving historic untagged)
-            return labels.includes("kle-spoke") || (!labels.includes("rit-spoke") && !labels.includes("coep-spoke") && !labels.includes("mmcoep-spoke"));
+            // KLE Campus: Show issues labeled "kle-campus" OR issues that don't have other campus labels (preserving historic untagged)
+            return labels.includes("kle-campus") || (!labels.includes("rit-campus") && !labels.includes("coep-campus") && !labels.includes("mmcoep-campus"));
           } else if (boardId === "101") {
-            // COEP Spoke: Show ONLY issues labeled "coep-spoke"
-            return labels.includes("coep-spoke");
+            // COEP Campus: Show ONLY issues labeled "coep-campus"
+            return labels.includes("coep-campus");
           } else if (boardId === "102") {
-            // MMCOEP Spoke: Show ONLY issues labeled "mmcoep-spoke"
-            return labels.includes("mmcoep-spoke");
+            // MMCOEP Campus: Show ONLY issues labeled "mmcoep-campus"
+            return labels.includes("mmcoep-campus");
           } else if (boardId === "103") {
-            // RIT Spoke: Show ONLY issues labeled "rit-spoke"
-            return labels.includes("rit-spoke");
+            // RIT Campus: Show ONLY issues labeled "rit-campus"
+            return labels.includes("rit-campus");
           }
           return true;
         });
       }
+
+      // "Archive" Meeting Actions and manually archived tasks by hiding them from the Kanban board entirely
+      issues = issues.filter(issue => {
+        const summary = issue.fields?.summary || "";
+        const labels = issue.fields?.labels || [];
+        return !summary.includes("[Meeting Action]") && !labels.includes("archived");
+      });
 
       // Overlay simulated assignees from store if present
       issues = issues.map(issue => {
@@ -426,7 +433,7 @@ app.get("/tasks", async (req, res) => {
 
       res.json(issues);
     } catch (error) {
-      console.error(`Jira Fetch Error for board ${spoke.boardId} (${spoke.name}):`, error.response?.data || error.message);
+      console.error(`Jira Fetch Error for board ${campus.boardId} (${campus.name}):`, error.response?.data || error.message);
       handleJiraNetworkError(error);
       
       // Fallback to cached tasks if available
@@ -518,7 +525,7 @@ app.get("/myself", async (req, res) => {
 app.post("/tasks", authenticateToken, async (req, res) => {
   const { summary, description, statusName, priorityName, assigneeId, reporterId, dueDate, issueTypeName, boardId, parentId, parentKey, parentSummary } = req.body;
   const targetBoardId = boardId || "3";
-  const spoke = SPOKES[targetBoardId];
+  const campus = CAMPUSES[targetBoardId];
 
   // Resolve assignee and reporter details (handles simulated and persistent MongoDB users)
   let assignedUserObj = null;
@@ -539,7 +546,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
         console.error("Failed to resolve persistent user for assignment:", err.message);
       }
     }
-    // Check if assignee is a custom Spoke Team persistently registered
+    // Check if assignee is a custom Campus Team persistently registered
     if (!assignedUserObj && /^[0-9a-fA-F]{24}$/.test(assigneeId)) {
       try {
         const teamObj = await Team.findById(assigneeId);
@@ -592,10 +599,10 @@ app.post("/tasks", authenticateToken, async (req, res) => {
     }
   }
 
-  if ((spoke && !spoke.live) || !shouldCheckJira()) {
+  if ((campus && !campus.live) || !shouldCheckJira()) {
     try {
       const dbTaskCount = await MockTask.countDocuments({ boardId: targetBoardId });
-      const prefix = spoke.key;
+      const prefix = campus.key;
       const newIndex = dbTaskCount + 1;
       const newKey = `${prefix}-${newIndex}`;
       const newId = `${targetBoardId}-task-${newIndex}`;
@@ -616,7 +623,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
           customfield_10021: null,
           subtasks: [],
           issuelinks: [],
-          labels: parentId ? ["B2B-Task", CAMPUS_LABELS[targetBoardId] || "kle-spoke"] : [],
+          labels: parentId ? ["B2B-Task", CAMPUS_LABELS[targetBoardId] || "kle-campus"] : [],
           parent: parentId ? {
             id: parentId,
             key: parentKey,
@@ -651,7 +658,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
   try {
     // 1. Fetch active issues to extract project key automatically
     const boardIssuesRes = await axios.get(
-      `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+      `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
       {
         headers: {
           Authorization: `Basic ${auth}`,
@@ -670,7 +677,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
       project: { key: projectKey },
       summary: summary,
       issuetype: { name: issueTypeName || "Task" },
-      labels: LIVE_BOARD_IDS.includes(spoke.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-spoke"] : ["manual"]
+      labels: LIVE_BOARD_IDS.includes(campus.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-campus"] : ["manual"]
     };
 
     if (description !== undefined) fields.description = description;
@@ -752,7 +759,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
     // 5. Check if the board has an active sprint, and if so, associate the new issue to it immediately
     try {
       const sprintsRes = await axios.get(
-        `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/sprint?state=active`,
+        `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/sprint?state=active`,
         {
           headers: {
             Authorization: `Basic ${auth}`,
@@ -794,10 +801,10 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
   const { summary, description, dueDate, assignee, reporter, priority } = req.body;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
   // Resolve assignee and reporter details (handles simulated and persistent MongoDB users)
@@ -855,16 +862,16 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
     }
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
+  if (!campus.live || !shouldCheckJira()) {
     try {
       let dbTask = await MockTask.findOne({ key });
       if (!dbTask) {
         const newIndex = key.split("-")[1] || Date.now();
-        const newId = `${spoke.boardId}-task-${newIndex}`;
+        const newId = `${campus.boardId}-task-${newIndex}`;
         dbTask = new MockTask({
           id: newId,
           key: key,
-          boardId: spoke.boardId || "3",
+          boardId: campus.boardId || "3",
           fields: {
             summary: summary || "Sprint Task",
             description: description || "",
@@ -898,10 +905,10 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
       await dbTask.save();
 
       // Maintain in-memory sync state
-      if (!mockTasksStore[spoke.boardId]) {
-        mockTasksStore[spoke.boardId] = [];
+      if (!mockTasksStore[campus.boardId]) {
+        mockTasksStore[campus.boardId] = [];
       }
-      const issues = mockTasksStore[spoke.boardId];
+      const issues = mockTasksStore[campus.boardId];
       let task = issues.find(t => t.key === key);
       if (task) {
         if (summary !== undefined) task.fields.summary = summary;
@@ -918,7 +925,7 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
         });
       }
 
-      invalidateCache(spoke.boardId);
+      invalidateCache(campus.boardId);
       return res.json({ success: true, message: `Updated mock issue ${key} successfully` });
     } catch (err) {
       console.error("Failed to update MockTask in MongoDB:", err.message);
@@ -977,7 +984,7 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
       }
     }
 
-    invalidateCache(spoke ? spoke.boardId : null);
+    invalidateCache(campus ? campus.boardId : null);
     res.json({ success: true, message: `Updated issue ${key} successfully` });
   } catch (error) {
     console.error("Update Issue Error:", error.response?.data || error.message);
@@ -991,22 +998,22 @@ app.post("/tasks/:key/transition", async (req, res) => {
   const { statusName } = req.body;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
+  if (!campus.live || !shouldCheckJira()) {
     try {
       let dbTask = await MockTask.findOne({ key });
       if (!dbTask) {
         const newIndex = key.split("-")[1] || Date.now();
-        const newId = `${spoke.boardId}-task-${newIndex}`;
+        const newId = `${campus.boardId}-task-${newIndex}`;
         dbTask = new MockTask({
           id: newId,
           key: key,
-          boardId: spoke.boardId || "3",
+          boardId: campus.boardId || "3",
           fields: {
             summary: "Sprint Task",
             description: "",
@@ -1030,10 +1037,10 @@ app.post("/tasks/:key/transition", async (req, res) => {
       await dbTask.save();
 
       // Maintain in-memory sync state
-      if (!mockTasksStore[spoke.boardId]) {
-        mockTasksStore[spoke.boardId] = [];
+      if (!mockTasksStore[campus.boardId]) {
+        mockTasksStore[campus.boardId] = [];
       }
-      const issues = mockTasksStore[spoke.boardId];
+      const issues = mockTasksStore[campus.boardId];
       let task = issues.find(t => t.key === key);
       if (task) {
         task.fields.status.name = statusName;
@@ -1045,7 +1052,7 @@ app.post("/tasks/:key/transition", async (req, res) => {
         });
       }
 
-      invalidateCache(spoke.boardId);
+      invalidateCache(campus.boardId);
       return res.json({ success: true, message: `Transitioned mock issue ${key} to ${statusName} successfully.` });
     } catch (err) {
       console.error("Failed to transition MockTask in MongoDB:", err.message);
@@ -1089,7 +1096,7 @@ app.post("/tasks/:key/transition", async (req, res) => {
       }
     );
 
-    invalidateCache(spoke ? spoke.boardId : null);
+    invalidateCache(campus ? campus.boardId : null);
     res.json({ success: true, message: `Transitioned issue ${key} to ${statusName} successfully.` });
   } catch (error) {
     console.error("Transition Issue Error:", error.response?.data || error.message);
@@ -1102,19 +1109,19 @@ app.delete("/tasks/:key", authenticateToken, async (req, res) => {
   const { key } = req.params;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
-    const issues = mockTasksStore[spoke.boardId] || [];
+  if (!campus.live || !shouldCheckJira()) {
+    const issues = mockTasksStore[campus.boardId] || [];
     const index = issues.findIndex(t => t.key === key);
     if (index !== -1) {
       issues.splice(index, 1);
-      mockTasksStore[spoke.boardId] = issues;
-      invalidateCache(spoke.boardId);
+      mockTasksStore[campus.boardId] = issues;
+      invalidateCache(campus.boardId);
       return res.json({ success: true, message: `Deleted mock issue ${key} successfully.` });
     } else {
       return res.status(404).json({ error: `Mock issue ${key} not found` });
@@ -1133,15 +1140,24 @@ app.delete("/tasks/:key", authenticateToken, async (req, res) => {
     }
     
     if (targetTransition) {
+      // Transition the issue
       await axios.post(
         `${process.env.JIRA_DOMAIN}/rest/api/2/issue/${key}/transitions`,
         { transition: { id: targetTransition.id } },
         { headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" } }
       );
-      invalidateCache(spoke ? spoke.boardId : null);
-      return res.json({ success: true, message: `Soft-deleted issue ${key} by moving it to ${targetTransition.name}.` });
+      
+      // Add the "archived" label so it's hidden from the UI
+      await axios.put(
+        `${process.env.JIRA_DOMAIN}/rest/api/2/issue/${key}`,
+        { update: { labels: [{ add: "archived" }] } },
+        { headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" } }
+      );
+      
+      invalidateCache(campus ? campus.boardId : null);
+      return res.json({ success: true, message: `Archived issue ${key}.` });
     } else {
-      return res.status(400).json({ error: "Could not find Archived or Done transition for soft delete." });
+      return res.status(400).json({ error: "Could not find a valid transition to archive the issue." });
     }
   } catch (error) {
     console.error("Soft Delete Issue Error:", error.response?.data || error.message);
@@ -1308,14 +1324,14 @@ app.put("/tasks/:key/flag", async (req, res) => {
   const { flagged } = req.body;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
-    const issues = mockTasksStore[spoke.boardId] || [];
+  if (!campus.live || !shouldCheckJira()) {
+    const issues = mockTasksStore[campus.boardId] || [];
     const task = issues.find(t => t.key === key);
     if (task) {
       task.fields.customfield_10021 = flagged ? [{ value: "Impediment" }] : null;
@@ -1355,14 +1371,14 @@ app.post("/tasks/:key/worklog", async (req, res) => {
   const { timeSpent, comment } = req.body;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
-    const issues = mockTasksStore[spoke.boardId] || [];
+  if (!campus.live || !shouldCheckJira()) {
+    const issues = mockTasksStore[campus.boardId] || [];
     const task = issues.find(t => t.key === key);
     if (task) {
       if (!task.fields.worklogs) task.fields.worklogs = [];
@@ -1412,14 +1428,14 @@ app.get("/tasks/:key/worklog", async (req, res) => {
   const { key } = req.params;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
-    const issues = mockTasksStore[spoke.boardId] || [];
+  if (!campus.live || !shouldCheckJira()) {
+    const issues = mockTasksStore[campus.boardId] || [];
     const task = issues.find(t => t.key === key);
     return res.json(task ? (task.fields.worklogs || []) : []);
   }
@@ -1447,14 +1463,14 @@ app.post("/tasks/:key/subtask", authenticateToken, async (req, res) => {
   const { summary, assigneeId, parentIssueType } = req.body;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
-    const issues = mockTasksStore[spoke.boardId] || [];
+  if (!campus.live || !shouldCheckJira()) {
+    const issues = mockTasksStore[campus.boardId] || [];
     const parentTask = issues.find(t => t.key === key);
     if (parentTask) {
       const isEpic = parentIssueType && parentIssueType.toLowerCase() === "epic";
@@ -1462,7 +1478,7 @@ app.post("/tasks/:key/subtask", authenticateToken, async (req, res) => {
       
       const newIndex = issues.length + 1;
       const newKey = `${projectKey}-${newIndex}`;
-      const newId = `${spoke.boardId}-task-${newIndex}`;
+      const newId = `${campus.boardId}-task-${newIndex}`;
 
       const newChild = {
         id: newId,
@@ -1489,7 +1505,7 @@ app.post("/tasks/:key/subtask", authenticateToken, async (req, res) => {
       };
 
       issues.push(newChild);
-      mockTasksStore[spoke.boardId] = issues;
+      mockTasksStore[campus.boardId] = issues;
 
       if (!isEpic) {
         if (!parentTask.fields.subtasks) parentTask.fields.subtasks = [];
@@ -1549,13 +1565,13 @@ app.post("/tasks/links", async (req, res) => {
   const { linkType, sourceKey, targetKey } = req.body;
 
   const projectKey = sourceKey.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
+  if (!campus.live || !shouldCheckJira()) {
     return res.json({ success: true, message: `Successfully linked board issues in mock workspace` });
   }
 
@@ -1597,18 +1613,18 @@ app.put("/tasks/:key/labels", async (req, res) => {
   const { labels } = req.body;
 
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const campus = Object.values(CAMPUSES).find(s => s.key === projectKey);
 
-  if (!spoke) {
-    return res.status(400).json({ error: "Invalid task key context. Spoke project not found." });
+  if (!campus) {
+    return res.status(400).json({ error: "Invalid task key context. Campus project not found." });
   }
 
-  if (!spoke.live || !shouldCheckJira()) {
-    const issues = mockTasksStore[spoke.boardId] || [];
+  if (!campus.live || !shouldCheckJira()) {
+    const issues = mockTasksStore[campus.boardId] || [];
     const task = issues.find(t => t.key === key);
     if (task) {
       task.fields.labels = labels;
-      invalidateCache(spoke.boardId);
+      invalidateCache(campus.boardId);
       return res.json({ success: true, message: `Successfully updated labels for mock issue ${key}` });
     } else {
       return res.status(404).json({ error: `Mock issue ${key} not found` });
@@ -1627,7 +1643,7 @@ app.put("/tasks/:key/labels", async (req, res) => {
         }
       }
     );
-    invalidateCache(spoke ? spoke.boardId : null);
+    invalidateCache(campus ? campus.boardId : null);
     res.json({ success: true, message: `Successfully updated labels for issue ${key}` });
   } catch (error) {
     console.error("Update Labels Error:", error.response?.data || error.message);
@@ -1645,19 +1661,19 @@ app.get("/hub/metrics", async (req, res) => {
 
   try {
     const hubData = {
-      spokes: [],
+      campuses: [],
       workstreams: [],
       blockers: []
     };
 
-    // 1. Fetch live issues for each respective Spoke dynamically in parallel
-    const spokesList = ["3", "101", "102", "103"];
+    // 1. Fetch live issues for each respective Campus dynamically in parallel
+    const campusesList = ["3", "101", "102", "103"];
     const allCampusIssues = {};
 
     await Promise.all(
-      spokesList.map(async (boardId) => {
-        const spoke = SPOKES[boardId];
-        if (spoke.live && shouldCheckJira()) {
+      campusesList.map(async (boardId) => {
+        const campus = CAMPUSES[boardId];
+        if (campus.live && shouldCheckJira()) {
           // Reuse campus task cache if fresh!
           if (apiCache.tasks[boardId] && (now - apiCache.tasks[boardId].time < CACHE_EXPIRY.tasks)) {
             allCampusIssues[boardId] = apiCache.tasks[boardId].data;
@@ -1666,7 +1682,7 @@ app.get("/hub/metrics", async (req, res) => {
 
           try {
             const response = await axios.get(
-              `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+              `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
               {
                 headers: {
                   Authorization: `Basic ${auth}`,
@@ -1676,21 +1692,21 @@ app.get("/hub/metrics", async (req, res) => {
               }
             );
             let issues = response.data.issues || [];
-            if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
+            if (LIVE_BOARD_IDS.includes(campus.boardId)) {
               issues = issues.filter(issue => {
                 const labels = issue.fields?.labels || [];
                 if (boardId === "3") {
-                  // KLE Spoke: Show issues labeled "kle-spoke" OR issues that don't have other campus labels (preserving historic untagged)
-                  return labels.includes("kle-spoke") || (!labels.includes("rit-spoke") && !labels.includes("coep-spoke") && !labels.includes("mmcoep-spoke"));
+                  // KLE Campus: Show issues labeled "kle-campus" OR issues that don't have other campus labels (preserving historic untagged)
+                  return labels.includes("kle-campus") || (!labels.includes("rit-campus") && !labels.includes("coep-campus") && !labels.includes("mmcoep-campus"));
                 } else if (boardId === "101") {
-                  // COEP Spoke: Show ONLY issues labeled "coep-spoke"
-                  return labels.includes("coep-spoke");
+                  // COEP Campus: Show ONLY issues labeled "coep-campus"
+                  return labels.includes("coep-campus");
                 } else if (boardId === "102") {
-                  // MMCOEP Spoke: Show ONLY issues labeled "mmcoep-spoke"
-                  return labels.includes("mmcoep-spoke");
+                  // MMCOEP Campus: Show ONLY issues labeled "mmcoep-campus"
+                  return labels.includes("mmcoep-campus");
                 } else if (boardId === "103") {
-                  // RIT Spoke: Show ONLY issues labeled "rit-spoke"
-                  return labels.includes("rit-spoke");
+                  // RIT Campus: Show ONLY issues labeled "rit-campus"
+                  return labels.includes("rit-campus");
                 }
                 return true;
               });
@@ -1702,7 +1718,7 @@ app.get("/hub/metrics", async (req, res) => {
             };
             allCampusIssues[boardId] = issues;
           } catch (err) {
-            console.warn(`Failed to fetch live board ${spoke.boardId} for spoke ${spoke.name} during Hub metrics aggregation:`, err.message);
+            console.warn(`Failed to fetch live board ${campus.boardId} for campus ${campus.name} during Hub metrics aggregation:`, err.message);
             handleJiraNetworkError(err);
             if (apiCache.tasks[boardId]) {
               allCampusIssues[boardId] = apiCache.tasks[boardId].data;
@@ -1724,7 +1740,7 @@ app.get("/hub/metrics", async (req, res) => {
     // 2. Identify all unique Epics in the entire active FIP ecosystem
     const epicMetadata = {};
     
-    spokesList.forEach(boardId => {
+    campusesList.forEach(boardId => {
       const issues = allCampusIssues[boardId];
       issues.forEach(issue => {
         const issueType = issue.fields?.issuetype?.name || issue.fields?.issueType || "Task";
@@ -1742,7 +1758,7 @@ app.get("/hub/metrics", async (req, res) => {
     });
 
     // Check child tasks parent summaries to align missing Epic objects
-    spokesList.forEach(boardId => {
+    campusesList.forEach(boardId => {
       const issues = allCampusIssues[boardId];
       issues.forEach(issue => {
         const parent = issue.fields?.parent || issue.parent;
@@ -1763,9 +1779,9 @@ app.get("/hub/metrics", async (req, res) => {
 
     const epicKeys = Object.keys(epicMetadata);
 
-    // 3. For each Spoke, compute metrics and dynamic Epic progress rates
-    spokesList.forEach(boardId => {
-      const spoke = SPOKES[boardId];
+    // 3. For each Campus, compute metrics and dynamic Epic progress rates
+    campusesList.forEach(boardId => {
+      const campus = CAMPUSES[boardId];
       const issues = allCampusIssues[boardId];
 
       let total = 0;
@@ -1814,7 +1830,7 @@ app.get("/hub/metrics", async (req, res) => {
             summary: issue.fields?.summary || issue.summary || "No Summary",
             statusName: status,
             priority: issue.fields?.priority?.name || "Medium",
-            spokeName: spoke.name,
+            campusName: campus.name,
             assignee: activeAssignee
           });
         }
@@ -1834,10 +1850,10 @@ app.get("/hub/metrics", async (req, res) => {
         }
       });
 
-      hubData.spokes.push({
+      hubData.campuses.push({
         id: boardId,
-        name: spoke.name,
-        key: spoke.key,
+        name: campus.name,
+        key: campus.key,
         total,
         done,
         progress,
@@ -1850,9 +1866,9 @@ app.get("/hub/metrics", async (req, res) => {
         const tCount = epicTaskTotals[summary];
         const dCount = epicTaskDones[summary];
         if (tCount > 0) {
-          epicMetadata[summary][spoke.name] = Math.round((dCount / tCount) * 100);
+          epicMetadata[summary][campus.name] = Math.round((dCount / tCount) * 100);
         } else {
-          epicMetadata[summary][spoke.name] = null;
+          epicMetadata[summary][campus.name] = null;
         }
       });
     });
@@ -1860,14 +1876,14 @@ app.get("/hub/metrics", async (req, res) => {
     epicKeys.forEach(summary => {
       hubData.workstreams.push({
         name: summary,
-        KLE: epicMetadata[summary]["KLE Spoke"],
-        COEP: epicMetadata[summary]["COEP Spoke"],
-        MMCOEP: epicMetadata[summary]["MMCOEP Spoke"],
-        RIT: epicMetadata[summary]["RIT Spoke"]
+        KLE: epicMetadata[summary]["KLE Campus"],
+        COEP: epicMetadata[summary]["COEP Campus"],
+        MMCOEP: epicMetadata[summary]["MMCOEP Campus"],
+        RIT: epicMetadata[summary]["RIT Campus"]
       });
     });
 
-    // 4. Calculate milestone progress for B2B Corporate Projects across all spokes (fetched from MongoDB)
+    // 4. Calculate milestone progress for B2B Corporate Projects across all campuses (fetched from MongoDB)
     const companyProjects = await CorporateProject.find().lean();
     hubData.b2bProjects = companyProjects.map(proj => {
       const enrichedAllocations = (proj.allocations || []).map(alloc => {
@@ -2008,14 +2024,14 @@ app.get("/moderator/projects", async (req, res) => {
   }
 
   try {
-    const spokesList = ["3", "101", "102", "103"];
+    const campusesList = ["3", "101", "102", "103"];
     const allCampusIssues = {};
 
-    // Fetch tasks for each spoke (mock or live) in parallel
+    // Fetch tasks for each campus (mock or live) in parallel
     await Promise.all(
-      spokesList.map(async (boardId) => {
-        const spoke = SPOKES[boardId];
-        if (spoke.live && shouldCheckJira()) {
+      campusesList.map(async (boardId) => {
+        const campus = CAMPUSES[boardId];
+        if (campus.live && shouldCheckJira()) {
           if (apiCache.tasks[boardId] && (now - apiCache.tasks[boardId].time < CACHE_EXPIRY.tasks)) {
             allCampusIssues[boardId] = apiCache.tasks[boardId].data;
             return;
@@ -2023,7 +2039,7 @@ app.get("/moderator/projects", async (req, res) => {
 
           try {
             const response = await axios.get(
-              `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+              `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
               {
                 headers: {
                   Authorization: `Basic ${auth}`,
@@ -2033,13 +2049,13 @@ app.get("/moderator/projects", async (req, res) => {
               }
             );
             let issues = response.data.issues || [];
-            if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
+            if (LIVE_BOARD_IDS.includes(campus.boardId)) {
               issues = issues.filter(issue => {
                 const labels = issue.fields?.labels || [];
-                if (boardId === "3") return labels.includes("kle-spoke") || (!labels.includes("rit-spoke") && !labels.includes("coep-spoke") && !labels.includes("mmcoep-spoke"));
-                if (boardId === "101") return labels.includes("coep-spoke");
-                if (boardId === "102") return labels.includes("mmcoep-spoke");
-                if (boardId === "103") return labels.includes("rit-spoke");
+                if (boardId === "3") return labels.includes("kle-campus") || (!labels.includes("rit-campus") && !labels.includes("coep-campus") && !labels.includes("mmcoep-campus"));
+                if (boardId === "101") return labels.includes("coep-campus");
+                if (boardId === "102") return labels.includes("mmcoep-campus");
+                if (boardId === "103") return labels.includes("rit-campus");
                 return true;
               });
             }
@@ -2050,7 +2066,7 @@ app.get("/moderator/projects", async (req, res) => {
             };
             allCampusIssues[boardId] = issues;
           } catch (err) {
-            console.warn(`Failed to fetch live board ${spoke.boardId} for spoke ${spoke.name} during Moderator Projects aggregation:`, err.message);
+            console.warn(`Failed to fetch live board ${campus.boardId} for campus ${campus.name} during Moderator Projects aggregation:`, err.message);
             handleJiraNetworkError(err);
             if (apiCache.tasks[boardId]) {
               allCampusIssues[boardId] = apiCache.tasks[boardId].data;
@@ -2225,27 +2241,22 @@ app.delete("/moderator/projects/:id", authenticateToken, async (req, res) => {
 });
 
 
-// POST: Propose a company project to a campus spoke (Awaiting acceptance)
+// POST: Propose a company project to a campus campus (Awaiting acceptance)
 app.post("/moderator/assign", authenticateToken, async (req, res) => {
   try {
-    const { projectId, targetBoardId, dueDate, phases } = req.body;
+    // accept targetBoardIds (array)
+    const { projectId, targetBoardIds, dueDate, phases } = req.body;
     const project = await CorporateProject.findById(projectId);
     if (!project) {
       return res.status(404).json({ error: "Company project not found" });
     }
-    const spoke = SPOKES[targetBoardId];
-    if (!spoke) {
-      return res.status(400).json({ error: "Invalid target campus spoke selected" });
+
+    if (!Array.isArray(targetBoardIds) || targetBoardIds.length === 0) {
+      return res.status(400).json({ error: "Please select at least one target campus campus" });
     }
 
     if (!project.allocations) {
       project.allocations = [];
-    }
-
-    // Check if already assigned to this campus
-    let allocation = project.allocations.find(a => a.targetCampusId === targetBoardId);
-    if (allocation) {
-      return res.status(400).json({ error: "This project has already been allocated or proposed to this campus spoke." });
     }
 
     const proposedDueDate = dueDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -2254,13 +2265,32 @@ app.post("/moderator/assign", authenticateToken, async (req, res) => {
       project.phases = phases;
     }
 
-    project.allocations.push({
-      targetCampusId: targetBoardId,
-      assignedTo: spoke.name,
-      status: "Proposed",
-      proposedDueDate: proposedDueDate,
-      assignedKey: null
-    });
+    const assignedCampusNames = [];
+    
+    for (const boardId of targetBoardIds) {
+      const campus = CAMPUSES[boardId];
+      if (!campus) continue; // Skip invalid campuses
+
+      // Check if already assigned to this campus
+      let allocation = project.allocations.find(a => a.targetCampusId === boardId);
+      if (allocation) continue; // Skip if already assigned
+
+      project.allocations.push({
+        targetCampusId: boardId,
+        assignedTo: campus.name,
+        status: "Proposed",
+        proposedDueDate: proposedDueDate,
+        assignedKey: null
+      });
+      assignedCampusNames.push(campus.name);
+      
+      // Invalidate cache for each target campus
+      invalidateCache(boardId);
+    }
+
+    if (assignedCampusNames.length === 0) {
+      return res.status(400).json({ error: "Project was already assigned to all selected campuses." });
+    }
 
     // Sync to root fields for backwards compatibility (Aggregated for Multi-Campus)
     project.status = project.allocations.some(a => a.status === "Active") ? "Active" : "Proposed";
@@ -2270,23 +2300,23 @@ app.post("/moderator/assign", authenticateToken, async (req, res) => {
     project.proposedDueDate = proposedDueDate;
 
     await project.save();
-    console.log(`Project ${project.title} successfully proposed to ${spoke.name}. Awaiting coordinator response.`);
+    const joinedNames = assignedCampusNames.join(", ");
+    console.log(`Project ${project.title} successfully proposed to ${joinedNames}. Awaiting coordinator response.`);
 
-    invalidateCache(targetBoardId);
     res.json({
       success: true,
-      message: `Successfully proposed project to ${spoke.name}! Awaiting coordinator acceptance.`,
-      assignedTo: spoke.name,
+      message: `Successfully proposed project to ${joinedNames}! Awaiting coordinator acceptance.`,
+      assignedTo: joinedNames,
       status: project.status
     });
   } catch (error) {
-    console.error("Failed to propose project to campus spoke:", error);
-    res.status(500).json({ error: "Failed to propose project to campus spoke" });
+    console.error("Failed to propose project to campus campus:", error);
+    res.status(500).json({ error: "Failed to propose project to campus campus" });
   }
 });
 
-// POST: Spoke coordinator accepts proposed project (Triggers JIRA Provisioning)
-app.post("/spoke/project/:projectId/accept", async (req, res) => {
+// POST: Campus coordinator accepts proposed project (Triggers JIRA Provisioning)
+app.post("/campus/project/:projectId/accept", async (req, res) => {
   const { projectId } = req.params;
   const { targetBoardId } = req.body;
   
@@ -2297,9 +2327,9 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
     }
 
     const boardId = targetBoardId || project.targetCampusId;
-    const spoke = SPOKES[boardId];
-    if (!spoke) {
-      return res.status(400).json({ error: "Invalid target campus spoke resolved" });
+    const campus = CAMPUSES[boardId];
+    if (!campus) {
+      return res.status(400).json({ error: "Invalid target campus campus resolved" });
     }
 
     if (!project.allocations) project.allocations = [];
@@ -2307,7 +2337,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
     if (!allocation) {
       allocation = {
         targetCampusId: boardId,
-        assignedTo: spoke.name,
+        assignedTo: campus.name,
         status: "Proposed",
         proposedDueDate: project.proposedDueDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         assignedKey: null
@@ -2353,11 +2383,11 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
       taskDueDates.push(t1DueDate, t2DueDate, t3DueDate);
     }
 
-    if (spoke.live && shouldCheckJira()) {
-      console.log(`[ASYNC PROVISIONING] Starting live background provisioning for ${spoke.name}...`);
+    if (campus.live && shouldCheckJira()) {
+      console.log(`[ASYNC PROVISIONING] Starting live background provisioning for ${campus.name}...`);
       
       // 1. Immediately mark active in DB with placeholder key so UI responds instantly!
-      createdEpicKey = `${spoke.key}-EPIC-PROVISIONING`;
+      createdEpicKey = `${campus.key}-EPIC-PROVISIONING`;
       if (allocation) {
         allocation.status = "Active";
         allocation.assignedKey = createdEpicKey;
@@ -2376,7 +2406,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
         success: true,
         message: `Successfully accepted project! Jira tasks are being created in the background.`,
         assignedKey: createdEpicKey,
-        assignedTo: spoke.name
+        assignedTo: campus.name
       });
 
       // 2. Perform live Jira calls in the background without blocking the HTTP request!
@@ -2384,7 +2414,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
         try {
           const epicBody = {
             fields: {
-              project: { key: spoke.key },
+              project: { key: campus.key },
               summary: summary,
               description: {
                 type: "doc",
@@ -2398,7 +2428,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
               },
               duedate: finalDateStr,
               issuetype: { name: "Epic" },
-              labels: LIVE_BOARD_IDS.includes(spoke.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-spoke"] : ["epic"]
+              labels: LIVE_BOARD_IDS.includes(campus.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-campus"] : ["epic"]
             }
           };
 
@@ -2439,7 +2469,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
               const taskSummary = standardTasks[idx];
               const taskBody = {
                 fields: {
-                  project: { key: spoke.key },
+                  project: { key: campus.key },
                   summary: taskSummary,
                   description: {
                     type: "doc",
@@ -2454,7 +2484,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
                   duedate: taskDueDates[idx],
                   issuetype: { name: "Task" },
                   parent: { key: realKey },
-                  labels: LIVE_BOARD_IDS.includes(spoke.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-spoke"] : ["task"]
+                  labels: LIVE_BOARD_IDS.includes(campus.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-campus"] : ["task"]
                 }
               };
 
@@ -2509,15 +2539,15 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
       })();
       return;
     } else {
-      console.log(`Mock Provisioning Project to simulated spoke ${spoke.name} on acceptance...`);
+      console.log(`Mock Provisioning Project to simulated campus ${campus.name} on acceptance...`);
       
       if (!mockTasksStore[targetBoardId]) {
         mockTasksStore[targetBoardId] = [];
       }
 
-      const spokeTasks = mockTasksStore[targetBoardId];
-      const epicIndex = spokeTasks.filter(t => t.fields?.issuetype?.name === "Epic").length + 1;
-      createdEpicKey = `${spoke.key}-${epicIndex}`;
+      const campusTasks = mockTasksStore[targetBoardId];
+      const epicIndex = campusTasks.filter(t => t.fields?.issuetype?.name === "Epic").length + 1;
+      createdEpicKey = `${campus.key}-${epicIndex}`;
       
       const newEpic = {
         id: `mock-${targetBoardId}-epic-${Date.now()}`,
@@ -2538,16 +2568,16 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
         }
       };
 
-      spokeTasks.push(newEpic);
+      campusTasks.push(newEpic);
 
       standardTasks.forEach((taskSummary, idx) => {
-        const childKey = `${spoke.key}-${epicIndex}-${idx + 1}`;
+        const childKey = `${campus.key}-${epicIndex}-${idx + 1}`;
         const newChild = {
           id: `mock-${targetBoardId}-child-${Date.now()}-${idx}`,
           key: childKey,
           fields: {
             summary: taskSummary,
-            description: `Automated child task created under Epic ${createdEpicKey} representing company project assigned to ${spoke.name}.`,
+            description: `Automated child task created under Epic ${createdEpicKey} representing company project assigned to ${campus.name}.`,
             status: { name: "To Do" },
             priority: { name: "Medium" },
             issuetype: { name: "Task" },
@@ -2565,7 +2595,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
             }
           }
         };
-        spokeTasks.push(newChild);
+        campusTasks.push(newChild);
       });
     }
 
@@ -2587,9 +2617,9 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
     invalidateCache();
     res.json({
       success: true,
-      message: `Successfully accepted and provisioned project to ${spoke.name}!`,
+      message: `Successfully accepted and provisioned project to ${campus.name}!`,
       assignedKey: createdEpicKey,
-      assignedTo: spoke.name
+      assignedTo: campus.name
     });
   } catch (error) {
     console.error("Assignment Acceptance Error:", error.message);
@@ -2597,7 +2627,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
   }
 });
 
-app.post("/spoke/project/:projectId/decline", async (req, res) => {
+app.post("/campus/project/:projectId/decline", async (req, res) => {
   try {
     const { projectId } = req.params;
     const { targetBoardId } = req.body;
@@ -2607,9 +2637,9 @@ app.post("/spoke/project/:projectId/decline", async (req, res) => {
     }
 
     const boardId = targetBoardId || project.targetCampusId;
-    const spokeName = SPOKES[boardId]?.name || "Campus";
+    const campusName = CAMPUSES[boardId]?.name || "Campus";
 
-    // Remove this specific spoke allocation
+    // Remove this specific campus allocation
     if (project.allocations) {
       project.allocations = project.allocations.filter(a => a.targetCampusId !== boardId);
     }
@@ -2631,12 +2661,12 @@ app.post("/spoke/project/:projectId/decline", async (req, res) => {
     }
 
     await project.save();
-    console.log(`Project proposal ${project.title} declined by ${spokeName}.`);
+    console.log(`Project proposal ${project.title} declined by ${campusName}.`);
 
     invalidateCache(boardId);
     res.json({
       success: true,
-      message: `Project proposal successfully declined by ${spokeName}.`,
+      message: `Project proposal successfully declined by ${campusName}.`,
       status: project.status
     });
   } catch (error) {
@@ -2693,13 +2723,13 @@ app.post("/meetings", async (req, res) => {
     // ── Fire notifications in the background (non-blocking) ─────────────────
     ;(async () => {
       try {
-        const spoke = SPOKES[campusId];
-        if (!spoke) return;
+        const campus = CAMPUSES[campusId];
+        if (!campus) return;
 
         const notifyCoordinators = new Set();
 
         // 1. Query live JIRA assignable users (if JIRA is online)
-        if (spoke.live && shouldCheckJira()) {
+        if (campus.live && shouldCheckJira()) {
           try {
             const authHeader = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
             const jiraRes = await axios.get(
@@ -2714,15 +2744,15 @@ app.post("/meetings", async (req, res) => {
           }
         }
 
-        // 2. Query MongoDB users for this spoke persona
-        const personaMap = { "3": "spoke-kle", "101": "spoke-coep", "102": "spoke-mmcoep", "103": "spoke-rit" };
+        // 2. Query MongoDB users for this campus persona
+        const personaMap = { "3": "campus-kle", "101": "campus-coep", "102": "campus-mmcoep", "103": "campus-rit" };
         const targetPersona = personaMap[campusId];
         if (targetPersona) {
           const dbUsers = await User.find({ persona: targetPersona });
           dbUsers.forEach(u => { if (u.email) notifyCoordinators.add(u.email.toLowerCase().trim()); });
         }
 
-        // 3. Simulated campus spoke members
+        // 3. Simulated campus campus members
         (CAMPUS_TEAM_MEMBERS[campusId] || []).forEach(u => {
           const email = u.emailAddress || u.email;
           if (email) notifyCoordinators.add(email.toLowerCase().trim());
@@ -2751,7 +2781,7 @@ app.post("/meetings", async (req, res) => {
                 </div>
                 <div style="padding:40px 30px;line-height:1.6">
                   <h2 style="margin-top:0;color:white;font-size:18px;font-weight:700">Meeting Invitation</h2>
-                  <p style="font-size:14px;color:#9ca3af;margin-bottom:24px">A new sync meeting has been scheduled for <strong style="color:#6366f1">${spoke.name}</strong>.</p>
+                  <p style="font-size:14px;color:#9ca3af;margin-bottom:24px">A new sync meeting has been scheduled for <strong style="color:#6366f1">${campus.name}</strong>.</p>
                   <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px;margin-bottom:24px">
                     <h3 style="margin-top:0;margin-bottom:12px;font-size:15px;color:white">📅 Meeting Details</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:13.5px">
@@ -2776,7 +2806,7 @@ app.post("/meetings", async (req, res) => {
           await transporter.sendMail({
             from: `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`,
             to: finalTo,
-            subject: `📅 [Meeting Scheduled] ${title} — ${date} at ${time} (${spoke.name})`,
+            subject: `📅 [Meeting Scheduled] ${title} — ${date} at ${time} (${campus.name})`,
             html: htmlTemplate
           });
           console.log(`[BG] Invitation email sent for "${title}" → ${finalTo}`);
@@ -2801,16 +2831,16 @@ app.post("/meetings/:id/remind", async (req, res) => {
       return res.status(404).json({ error: "Sync meeting not found" });
     }
 
-    const spoke = SPOKES[meeting.campusId];
-    if (!spoke) {
-      return res.status(400).json({ error: "Invalid campus spoke associated with meeting" });
+    const campus = CAMPUSES[meeting.campusId];
+    if (!campus) {
+      return res.status(400).json({ error: "Invalid campus campus associated with meeting" });
     }
 
     let tasks = [];
-    if (spoke.live && shouldCheckJira()) {
+    if (campus.live && shouldCheckJira()) {
       try {
         const response = await axios.get(
-          `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+          `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
           {
             headers: {
               Authorization: `Basic ${auth}`,
@@ -2820,28 +2850,28 @@ app.post("/meetings/:id/remind", async (req, res) => {
           }
         );
         let issues = response.data.issues || [];
-        if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
+        if (LIVE_BOARD_IDS.includes(campus.boardId)) {
           issues = issues.filter(issue => {
             const labels = issue.fields?.labels || [];
             if (meeting.campusId === "3") {
-              // KLE Spoke: Show issues labeled "kle-spoke" OR issues that don't have other campus labels (preserving historic untagged)
-              return labels.includes("kle-spoke") || (!labels.includes("rit-spoke") && !labels.includes("coep-spoke") && !labels.includes("mmcoep-spoke"));
+              // KLE Campus: Show issues labeled "kle-campus" OR issues that don't have other campus labels (preserving historic untagged)
+              return labels.includes("kle-campus") || (!labels.includes("rit-campus") && !labels.includes("coep-campus") && !labels.includes("mmcoep-campus"));
             } else if (meeting.campusId === "101") {
-              // COEP Spoke: Show ONLY issues labeled "coep-spoke"
-              return labels.includes("coep-spoke");
+              // COEP Campus: Show ONLY issues labeled "coep-campus"
+              return labels.includes("coep-campus");
             } else if (meeting.campusId === "102") {
-              // MMCOEP Spoke: Show ONLY issues labeled "mmcoep-spoke"
-              return labels.includes("mmcoep-spoke");
+              // MMCOEP Campus: Show ONLY issues labeled "mmcoep-campus"
+              return labels.includes("mmcoep-campus");
             } else if (meeting.campusId === "103") {
-              // RIT Spoke: Show ONLY issues labeled "rit-spoke"
-              return labels.includes("rit-spoke");
+              // RIT Campus: Show ONLY issues labeled "rit-campus"
+              return labels.includes("rit-campus");
             }
             return true;
           });
         }
         tasks = issues;
       } catch (err) {
-        console.warn(`Failed to fetch live board ${spoke.boardId} during remind aggregation, falling back to cached or mock tasks.`);
+        console.warn(`Failed to fetch live board ${campus.boardId} during remind aggregation, falling back to cached or mock tasks.`);
         handleJiraNetworkError(err);
         tasks = apiCache.tasks[meeting.campusId]?.data || mockTasksStore[meeting.campusId] || [];
       }
@@ -2859,14 +2889,14 @@ app.post("/meetings/:id/remind", async (req, res) => {
 
     const overdueTasks = [];
     const blockedTasks = [];
-    const notifyCoordinators = new Set(["manasa@apnileap.com", "coordinator@" + spoke.key.toLowerCase() + ".edu"]);
+    const notifyCoordinators = new Set(["manasa@apnileap.com", "coordinator@" + campus.key.toLowerCase() + ".edu"]);
 
-    // Dynamically resolve and add all whitelisted Spoke team members (Mentors, Student Developers, and Coordinators) to recipient list
+    // Dynamically resolve and add all whitelisted Campus team members (Mentors, Student Developers, and Coordinators) to recipient list
     try {
       const boardId = meeting.campusId;
       
       // 1. Query live JIRA assignable users (if JIRA is online)
-      if (spoke.live && shouldCheckJira()) {
+      if (campus.live && shouldCheckJira()) {
         try {
           const jiraRes = await axios.get(
             `${process.env.JIRA_DOMAIN}/rest/api/2/user/assignable/search?project=AK`,
@@ -2890,12 +2920,12 @@ app.post("/meetings/:id/remind", async (req, res) => {
         }
       }
 
-      // 2. Query persistent MongoDB database users matching this spoke
+      // 2. Query persistent MongoDB database users matching this campus
       const personaMap = {
-        "3": "spoke-kle",
-        "101": "spoke-coep",
-        "102": "spoke-mmcoep",
-        "103": "spoke-rit"
+        "3": "campus-kle",
+        "101": "campus-coep",
+        "102": "campus-mmcoep",
+        "103": "campus-rit"
       };
       const targetPersona = personaMap[boardId];
       if (targetPersona) {
@@ -2907,7 +2937,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
         });
       }
 
-      // 3. Query simulated campus spoke members
+      // 3. Query simulated campus campus members
       const simulated = CAMPUS_TEAM_MEMBERS[boardId] || [];
       simulated.forEach(u => {
         const email = u.emailAddress || u.email;
@@ -2917,7 +2947,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
       });
       
     } catch (memberErr) {
-      console.error("Failed to dynamically gather Spoke members in remind endpoint:", memberErr.message);
+      console.error("Failed to dynamically gather Campus members in remind endpoint:", memberErr.message);
     }
 
     tasks.forEach(t => {
@@ -3008,7 +3038,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
             ${redirectBannerHtml}
             <h2 style="margin-top: 0; color: white; font-size: 18px; font-weight: 700;">Campus Sync & Deliverables Warning</h2>
             <p style="font-size: 14px; color: #9ca3af; margin-bottom: 24px;">
-              A campus sync meeting is scheduled for <strong style="color: #6366f1;">${spoke.name}</strong>. Please review the agenda and the current active sprint blockers/overdue items compiled for your spoke.
+              A campus sync meeting is scheduled for <strong style="color: #6366f1;">${campus.name}</strong>. Please review the agenda and the current active sprint blockers/overdue items compiled for your campus.
             </p>
 
             <!-- Sync Card -->
@@ -3122,8 +3152,8 @@ app.post("/meetings/:id/remind", async (req, res) => {
         ? `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`
         : '"ApniLeap Hub Alert Gateway" <no-reply@apnileap.com>',
       to: finalTo,
-      subject: `🚨 [${meeting.cadenceType || 'General Sync'}] Campus Sync Prep: ${meeting.title} (${spoke.name})`,
-      text: `Meeting: ${meeting.title}\nCampus: ${spoke.name}\nTime: ${meeting.date} at ${meeting.time}\n\nOverdue Tasks: ${overdueTasks.length}\nBlocked Tasks: ${blockedTasks.length}\n\n(Demo Mode - Originally addressed to: ${recipientList.join(", ")})`,
+      subject: `🚨 [${meeting.cadenceType || 'General Sync'}] Campus Sync Prep: ${meeting.title} (${campus.name})`,
+      text: `Meeting: ${meeting.title}\nCampus: ${campus.name}\nTime: ${meeting.date} at ${meeting.time}\n\nOverdue Tasks: ${overdueTasks.length}\nBlocked Tasks: ${blockedTasks.length}\n\n(Demo Mode - Originally addressed to: ${recipientList.join(", ")})`,
       html: htmlTemplate
     });
 
@@ -3131,7 +3161,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
     console.log("┌────────────────────────────────────────────────────────┐");
     console.log("│ 📧   APNILEAP HUB SYNC ALERT EMAIL GATEWAY (SMTP)       │");
     console.log("├────────────────────────────────────────────────────────┤");
-    console.log(`│ SPOKE:      \x1b[36m${spoke.name}\x1b[0m`);
+    console.log(`│ CAMPUS:      \x1b[36m${campus.name}\x1b[0m`);
     console.log(`│ RECIPIENTS: \x1b[36m${recipientList.join(", ")}\x1b[0m`);
     if (redirectEmail) {
       console.log(`│ REROUTED TO:\x1b[33m ${redirectEmail} (Demo Rerouting Mode)\x1b[0m`);
@@ -3187,8 +3217,8 @@ async function runMeetingAgent(meetingId, { silent = false } = {}) {
   const meeting = await Meeting.findOne({ id: meetingId });
   if (!meeting) throw new Error("Meeting not found");
 
-  const spoke = SPOKES[meeting.campusId];
-  if (!spoke) throw new Error("Invalid campus spoke");
+  const campus = CAMPUSES[meeting.campusId];
+  if (!campus) throw new Error("Invalid campus campus");
 
   // STEP 1 ── Generate AI notes from context ─────────────────────────────────
   const activeProjects = await CorporateProject.find({
@@ -3205,7 +3235,7 @@ async function runMeetingAgent(meetingId, { silent = false } = {}) {
 
   const actionTemplates = {
     "Weekly College PM Update": [
-      `Update Phase task statuses in Jira for all active projects at ${spoke.name}`,
+      `Update Phase task statuses in Jira for all active projects at ${campus.name}`,
       `Resolve any blocked tasks flagged in today's sprint review`,
       `Share weekly progress report with ApniLeap Hub Moderator`,
       `Confirm student attendance for lab sessions this week`,
@@ -3227,13 +3257,13 @@ async function runMeetingAgent(meetingId, { silent = false } = {}) {
     ],
     "Monthly FIP Steering Review": [
       `Present Phase completion certificates to industry partners`,
-      `Initiate Phase 2 kickoff planning with all campus spokes`,
+      `Initiate Phase 2 kickoff planning with all campus campuses`,
       `Submit budget utilization report to FIP steering committee`,
       `Collect and compile industry mentor feedback for program improvement`,
       `Schedule next month's steering review and send calendar invites`
     ],
     "General Sync": [
-      `Share meeting minutes with all ${spoke.name} stakeholders`,
+      `Share meeting minutes with all ${campus.name} stakeholders`,
       `Update relevant Jira tasks based on decisions made today`,
       `Follow up on any unresolved discussion points via email`,
       `Confirm next sync date and agenda items`,
@@ -3246,7 +3276,7 @@ async function runMeetingAgent(meetingId, { silent = false } = {}) {
     "Blockers & Risks": `No critical blockers reported. Minor dependency on industry mentor availability for Phase 2 sign-off.`,
     "Deliverable Status": `Deliverables for current sprint phase submitted. Faculty mentor sign-off pending for 2 items. Rovo Agent verification completed.`,
     "Next Week Plan": `Focus on completing Phase 2 lab setup tasks. Schedule mentor-student pairing sessions.`,
-    "Student Engagement Update": `Student participation rate at ${spoke.name} remains high. Lab sessions well-attended.`,
+    "Student Engagement Update": `Student participation rate at ${campus.name} remains high. Lab sessions well-attended.`,
     "Lab Infrastructure Status": `Primary lab space operational. Backup systems tested and functional.`,
     "Mentor Availability": `Faculty mentors confirmed for next 2 weeks. Industry mentor requested async review mode.`,
     "Upcoming Milestones": `Phase 1 completion review scheduled. Final deliverables due at end of month.`,
@@ -3254,7 +3284,7 @@ async function runMeetingAgent(meetingId, { silent = false } = {}) {
     "Cross-Campus Coordination": `KLE and COEP teams coordinating on shared infrastructure. MMCOEP onboarding proceeding.`,
     "Industry Partner Updates": `Received positive feedback on Phase 1 delivery. Partners confirmed Phase 2 scope.`,
     "Risk Register": `Risk 1: Mentor bandwidth — Mitigation: async review. Risk 2: Lab capacity — Mitigation: staggered scheduling.`,
-    "Phase Completion Status": `Phase 1 formally completed at ${spoke.name}. Documentation signed off. Jira Epics marked Done.`,
+    "Phase Completion Status": `Phase 1 formally completed at ${campus.name}. Documentation signed off. Jira Epics marked Done.`,
     "Budget & Resource Utilization": `Budget utilization at 68% of Phase 1 allocation. No overruns reported.`,
     "Industry Feedback": `Partners rated Phase 1 quality 4.2/5. Feedback: improve documentation and demo frequency.`,
     "Next Phase Planning": `Phase 2 kickoff proposed for next month. Scope includes advanced implementation.`,
@@ -3278,7 +3308,7 @@ async function runMeetingAgent(meetingId, { silent = false } = {}) {
   const generatedNotes = `📋 MEETING NOTES — AUTO-GENERATED BY APNILEAP AGENT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Meeting: ${meeting.title}
-Campus: ${spoke.name}
+Campus: ${campus.name}
 Date: ${meeting.date} | Time: ${meeting.time}
 Type: ${meeting.cadenceType}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3286,7 +3316,7 @@ Type: ${meeting.cadenceType}
 📌 AGENDA
 ${meeting.agenda}
 
-🏭 ACTIVE INDUSTRY PROJECTS (${spoke.name})
+🏭 ACTIVE INDUSTRY PROJECTS (${campus.name})
 ${projectMentions}
 
 ${sections.map((s, i) => `\n${i + 1}. ${s.toUpperCase()}\n${sectionContents[s] || "To be updated by coordinator."}`).join("\n")}
@@ -3303,11 +3333,11 @@ ${actions.map(a => `Action: ${a}`).join("\n")}`;
   for (let i = 0; i < actions.length; i++) {
     let jiraKey = "";
 
-    if (spoke.live && shouldCheckJira()) {
+    if (campus.live && shouldCheckJira()) {
       try {
         const taskBody = {
           fields: {
-            project: { key: spoke.key },
+            project: { key: campus.key },
             summary: `[Meeting Action] ${actions[i]}`,
             issuetype: { name: "Task" },
             labels: [CAMPUS_LABELS[meeting.campusId] || "meeting-action", "meeting-action"]
@@ -3326,7 +3356,7 @@ ${actions.map(a => `Action: ${a}`).join("\n")}`;
 
     if (!jiraKey) {
       const mockIdx = mockTasksStore[meeting.campusId].length + 1;
-      jiraKey = `${spoke.key}-MA-${mockIdx}`;
+      jiraKey = `${campus.key}-MA-${mockIdx}`;
       mockTasksStore[meeting.campusId].push({
         id: `mock-meet-action-${Date.now()}-${i}`,
         key: jiraKey,
@@ -3354,7 +3384,7 @@ ${actions.map(a => `Action: ${a}`).join("\n")}`;
   if (!silent) {
     try {
       const notifySet = new Set();
-      const personaMap = { "3": "spoke-kle", "101": "spoke-coep", "102": "spoke-mmcoep", "103": "spoke-rit" };
+      const personaMap = { "3": "campus-kle", "101": "campus-coep", "102": "campus-mmcoep", "103": "campus-rit" };
       const targetPersona = personaMap[meeting.campusId];
       if (targetPersona) {
         const dbUsers = await User.find({ persona: targetPersona });
@@ -3385,7 +3415,7 @@ ${actions.map(a => `Action: ${a}`).join("\n")}`;
         await transporter.sendMail({
           from: `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`,
           to: finalTo,
-          subject: `📋 [Meeting Summary] ${meeting.title} — ${meeting.date} (${spoke.name})`,
+          subject: `📋 [Meeting Summary] ${meeting.title} — ${meeting.date} (${campus.name})`,
           html: `<div style="font-family:'Segoe UI',Arial,sans-serif;background:#07090e;padding:40px;color:#f3f4f6">
             <div style="max-width:620px;margin:0 auto;background:rgba(17,24,39,0.9);border-radius:16px;border:1px solid rgba(255,255,255,0.08);overflow:hidden">
               <div style="background:linear-gradient(135deg,#6366f1,#a855f7);padding:28px;text-align:center">
@@ -3394,7 +3424,7 @@ ${actions.map(a => `Action: ${a}`).join("\n")}`;
               </div>
               <div style="padding:30px">
                 <h2 style="color:white;margin-top:0">${meeting.title}</h2>
-                <p style="color:#9ca3af;font-size:13px">📅 ${meeting.date} at ${meeting.time} &nbsp;|&nbsp; 🏫 ${spoke.name} &nbsp;|&nbsp; ${meeting.cadenceType}</p>
+                <p style="color:#9ca3af;font-size:13px">📅 ${meeting.date} at ${meeting.time} &nbsp;|&nbsp; 🏫 ${campus.name} &nbsp;|&nbsp; ${meeting.cadenceType}</p>
                 <p style="color:#9ca3af;font-size:13px"><strong style="color:#d1d5db">Agenda:</strong> ${meeting.agenda}</p>
                 <h3 style="color:#6366f1;font-size:14px;margin-top:24px">✅ ACTION ITEMS CREATED IN JIRA</h3>
                 <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -3472,9 +3502,10 @@ Auto-Extracted Action Items:
       });
     }
 
+    const redirectEmail = process.env.SMTP_REDIRECT_TO || null;
     const mailOptions = {
       from: '"Rovo AI (ApniLeap)" <rovo@apnileap.com>',
-      to: "participants@apnileap.com",
+      to: redirectEmail || "participants@apnileap.com",
       subject: `Meeting Summary: ${meeting.title}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
@@ -3525,8 +3556,8 @@ app.post("/meetings/:id/generate-notes", async (req, res) => {
     const meeting = await Meeting.findOne({ id });
     if (!meeting) return res.status(404).json({ error: "Meeting not found." });
 
-    const spoke = SPOKES[meeting.campusId];
-    if (!spoke) return res.status(400).json({ error: "Invalid campus spoke." });
+    const campus = CAMPUSES[meeting.campusId];
+    if (!campus) return res.status(400).json({ error: "Invalid campus campus." });
 
     // Gather active projects assigned to this campus for context
     const activeProjects = await CorporateProject.find({
@@ -3575,7 +3606,7 @@ app.post("/meetings/:id/generate-notes", async (req, res) => {
     // Generate action items based on context
     const actionTemplates = {
       "Weekly College PM Update": [
-        `Update Phase task statuses in Jira for all active projects at ${spoke.name}`,
+        `Update Phase task statuses in Jira for all active projects at ${campus.name}`,
         `Resolve any blocked tasks flagged in today's sprint review`,
         `Share weekly progress report with ApniLeap Hub Moderator`,
         `Confirm student attendance for lab sessions this week`,
@@ -3597,13 +3628,13 @@ app.post("/meetings/:id/generate-notes", async (req, res) => {
       ],
       "Monthly FIP Steering Review": [
         `Present Phase completion certificates to industry partners`,
-        `Initiate Phase 2 kickoff planning with all campus spokes`,
+        `Initiate Phase 2 kickoff planning with all campus campuses`,
         `Submit budget utilization report to FIP steering committee`,
         `Collect and compile industry mentor feedback for program improvement`,
         `Schedule next month's steering review and send calendar invites`
       ],
       "General Sync": [
-        `Share meeting minutes with all ${spoke.name} stakeholders`,
+        `Share meeting minutes with all ${campus.name} stakeholders`,
         `Update relevant Jira tasks based on decisions made today`,
         `Follow up on any unresolved discussion points via email`,
         `Confirm next sync date and agenda items`,
@@ -3620,7 +3651,7 @@ app.post("/meetings/:id/generate-notes", async (req, res) => {
     const generatedNotes = `📋 MEETING NOTES — AUTO-GENERATED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Meeting: ${meeting.title}
-Campus: ${spoke.name}
+Campus: ${campus.name}
 Date: ${meeting.date} | Time: ${meeting.time}
 Type: ${meeting.cadenceType}
 Generated at: ${timeStr}
@@ -3629,7 +3660,7 @@ Generated at: ${timeStr}
 📌 AGENDA
 ${meeting.agenda}
 
-🏭 ACTIVE INDUSTRY PROJECTS (${spoke.name})
+🏭 ACTIVE INDUSTRY PROJECTS (${campus.name})
 ${projectMentions}
 
 ${template.sections.map((section, i) => {
@@ -3638,7 +3669,7 @@ ${template.sections.map((section, i) => {
     "Blockers & Risks": `No critical blockers reported at this time. Minor dependency on industry mentor availability for Phase 2 sign-off. Lab infrastructure upgrade pending IT clearance.`,
     "Deliverable Status": `Deliverables for current sprint phase submitted for review. Faculty mentor sign-off pending for 2 items. Rovo Agent verification completed on all GitHub submissions.`,
     "Next Week Plan": `Focus on completing Phase 2 lab setup tasks. Schedule mentor-student pairing sessions. Prepare deliverable summary for next bi-weekly review.`,
-    "Student Engagement Update": `Student participation rate at ${spoke.name} remains high. Lab sessions well-attended. Some students requested extended access hours — escalated to campus admin.`,
+    "Student Engagement Update": `Student participation rate at ${campus.name} remains high. Lab sessions well-attended. Some students requested extended access hours — escalated to campus admin.`,
     "Lab Infrastructure Status": `Primary lab space operational. Backup systems tested and functional. Software licenses renewed for the semester.`,
     "Mentor Availability": `Faculty mentors confirmed availability for the next 2 weeks. Industry mentor (Company liaison) requested async review mode for this sprint due to travel.`,
     "Upcoming Milestones": `Phase 1 completion review scheduled. Final deliverables due at end of month. Steering committee presentation in 3 weeks.`,
@@ -3646,7 +3677,7 @@ ${template.sections.map((section, i) => {
     "Cross-Campus Coordination": `KLE and COEP teams coordinating on shared infrastructure components. MMCOEP onboarding proceeding as planned. RIT team confirmed mentor assignments.`,
     "Industry Partner Updates": `Received positive feedback from industry partners on Phase 1 delivery quality. Partners have confirmed Phase 2 scope requirements. Joint review meeting to be scheduled.`,
     "Risk Register": `Risk 1: Mentor bandwidth constraints — Mitigation: async review process enabled. Risk 2: Lab capacity during peak hours — Mitigation: staggered scheduling proposed.`,
-    "Phase Completion Status": `Phase 1 formally completed at ${spoke.name}. Documentation signed off by faculty and industry mentors. Jira Epics marked Done.`,
+    "Phase Completion Status": `Phase 1 formally completed at ${campus.name}. Documentation signed off by faculty and industry mentors. Jira Epics marked Done.`,
     "Budget & Resource Utilization": `Budget utilization at 68% of Phase 1 allocation. Lab resources efficiently utilized. No budget overruns reported.`,
     "Industry Feedback": `Industry partners rated Phase 1 delivery quality 4.2/5. Key feedback: improve documentation standards and increase demonstration frequency.`,
     "Next Phase Planning": `Phase 2 kickoff proposed for next month. Scope includes advanced implementation and industry-facing demo preparation.`,
@@ -3692,9 +3723,9 @@ app.post("/meetings/:id/notes", async (req, res) => {
       return res.status(404).json({ error: "Meeting not found." });
     }
 
-    const spoke = SPOKES[meeting.campusId];
-    if (!spoke) {
-      return res.status(400).json({ error: "Invalid campus spoke for this meeting." });
+    const campus = CAMPUSES[meeting.campusId];
+    if (!campus) {
+      return res.status(400).json({ error: "Invalid campus campus for this meeting." });
     }
 
     // ── STEP 1: Extract action items from notes ──────────────────────────────
@@ -3747,11 +3778,11 @@ app.post("/meetings/:id/notes", async (req, res) => {
       const summary = `[Meeting Action] ${extractedItems[i]}`;
       let jiraKey = "";
 
-      if (spoke.live && shouldCheckJira()) {
+      if (campus.live && shouldCheckJira()) {
         try {
           const taskBody = {
             fields: {
-              project: { key: spoke.key },
+              project: { key: campus.key },
               summary: summary,
               description: {
                 type: "doc",
@@ -3786,7 +3817,7 @@ app.post("/meetings/:id/notes", async (req, res) => {
       if (!jiraKey) {
         if (!mockTasksStore[meeting.campusId]) mockTasksStore[meeting.campusId] = [];
         const mockIdx = mockTasksStore[meeting.campusId].length + 1;
-        jiraKey = `${spoke.key}-MA-${mockIdx}`;
+        jiraKey = `${campus.key}-MA-${mockIdx}`;
         mockTasksStore[meeting.campusId].push({
           id: `mock-meet-action-${Date.now()}-${i}`,
           key: jiraKey,
@@ -3882,16 +3913,16 @@ app.post("/moderator/alerts/check", async (req, res) => {
       let anyBreached = false;
 
       for (const alloc of allocationsToCheck) {
-        const boardId = alloc.targetCampusId || Object.keys(SPOKES).find(k => SPOKES[k].name === alloc.assignedTo);
+        const boardId = alloc.targetCampusId || Object.keys(CAMPUSES).find(k => CAMPUSES[k].name === alloc.assignedTo);
         if (!boardId) continue;
-        const spoke = SPOKES[boardId];
-        if (!spoke) continue;
+        const campus = CAMPUSES[boardId];
+        if (!campus) continue;
 
         let tasks = [];
-        if (spoke.live && shouldCheckJira()) {
+        if (campus.live && shouldCheckJira()) {
           try {
             const response = await axios.get(
-              `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+              `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
               {
                 headers: {
                   Authorization: `Basic ${auth}`,
@@ -3902,7 +3933,7 @@ app.post("/moderator/alerts/check", async (req, res) => {
             );
             tasks = response.data.issues || [];
           } catch (err) {
-            console.warn(`Failed to fetch live tasks for spoke ${spoke.name} during alerts check.`);
+            console.warn(`Failed to fetch live tasks for campus ${campus.name} during alerts check.`);
             handleJiraNetworkError(err);
             tasks = apiCache.tasks[boardId]?.data || mockTasksStore[boardId] || [];
           }
@@ -3955,15 +3986,15 @@ app.post("/moderator/alerts/check", async (req, res) => {
         if (isBreached) {
           anyBreached = true;
 
-          const notifyCoordinators = new Set(["manasa@apnileap.com", "coordinator@" + spoke.key.toLowerCase() + ".edu"]);
+          const notifyCoordinators = new Set(["manasa@apnileap.com", "coordinator@" + campus.key.toLowerCase() + ".edu"]);
 
-          // Gather all stakeholders for this Spoke to notify
+          // Gather all stakeholders for this Campus to notify
           try {
             const personaMap = {
-              "3": "spoke-kle",
-              "101": "spoke-coep",
-              "102": "spoke-mmcoep",
-              "103": "spoke-rit"
+              "3": "campus-kle",
+              "101": "campus-coep",
+              "102": "campus-mmcoep",
+              "103": "campus-rit"
             };
             const targetPersona = personaMap[boardId];
             if (targetPersona) {
@@ -3983,7 +4014,7 @@ app.post("/moderator/alerts/check", async (req, res) => {
               }
             });
           } catch (memberErr) {
-            console.error("Failed to dynamically gather Spoke members in alerts check:", memberErr.message);
+            console.error("Failed to dynamically gather Campus members in alerts check:", memberErr.message);
           }
 
           const recipientList = Array.from(notifyCoordinators);
@@ -4125,14 +4156,14 @@ async function syncAcceptedProjectsWithJira() {
     console.log("⚠️ [OFFLINE BYPASS] Skipping startup Jira sync due to active offline circuit breaker.");
     return;
   }
-  const spokesList = ["3", "101", "102", "103"];
+  const campusesList = ["3", "101", "102", "103"];
   await Promise.all(
-    spokesList.map(async (boardId) => {
-      const spoke = SPOKES[boardId];
-      if (!spoke.live) return;
+    campusesList.map(async (boardId) => {
+      const campus = CAMPUSES[boardId];
+      if (!campus.live) return;
       try {
         const response = await axios.get(
-          `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`,
+          `${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${campus.boardId}/issue`,
           {
             headers: {
               Authorization: `Basic ${auth}`,
@@ -4146,12 +4177,12 @@ async function syncAcceptedProjectsWithJira() {
         
         for (const epic of epics) {
           const labels = epic.fields?.labels || [];
-          const hasKle = labels.includes("kle-spoke");
-          const hasCoep = labels.includes("coep-spoke");
-          const hasMmcoep = labels.includes("mmcoep-spoke");
-          const hasRit = labels.includes("rit-spoke");
+          const hasKle = labels.includes("kle-campus");
+          const hasCoep = labels.includes("coep-campus");
+          const hasMmcoep = labels.includes("mmcoep-campus");
+          const hasRit = labels.includes("rit-campus");
           
-          // Match the epic to the correct campus spoke board loop iteration
+          // Match the epic to the correct campus campus board loop iteration
           if (boardId === "3" && (hasRit || hasCoep || hasMmcoep)) continue;
           if (boardId === "101" && !hasCoep) continue;
           if (boardId === "102" && !hasMmcoep) continue;
@@ -4170,17 +4201,17 @@ async function syncAcceptedProjectsWithJira() {
             
             if (project) {
               project.status = "Active";
-              project.assignedTo = spoke.name;
+              project.assignedTo = campus.name;
               project.targetCampusId = boardId;
               project.assignedKey = epic.key;
               project.proposedDueDate = epic.fields.duedate || project.proposedDueDate;
               await project.save();
-              console.log(`Synced accepted project: ${project.title} is Active at ${spoke.name} (Key: ${epic.key})`);
+              console.log(`Synced accepted project: ${project.title} is Active at ${campus.name} (Key: ${epic.key})`);
             }
           }
         }
       } catch (err) {
-        console.warn(`Failed to sync spoke ${spoke.name} with Jira on startup:`, err.message);
+        console.warn(`Failed to sync campus ${campus.name} with Jira on startup:`, err.message);
         handleJiraNetworkError(err);
       }
     })
@@ -4210,163 +4241,163 @@ const CREDENTIALS_STORE = {
   "coordinator@kle.edu": {
     password: "kle123",
     displayName: "KLE Coordinator",
-    role: "KLE Spoke Coordinator",
-    persona: "spoke-kle",
-    spokeId: "3"
+    role: "KLE Campus Coordinator",
+    persona: "campus-kle",
+    campusId: "3"
   },
   "coordinator@coep.edu": {
     password: "coep123",
     displayName: "COEP Coordinator",
-    role: "COEP Spoke Coordinator",
-    persona: "spoke-coep",
-    spokeId: "101"
+    role: "COEP Campus Coordinator",
+    persona: "campus-coep",
+    campusId: "101"
   },
   "coordinator@mmcoep.edu": {
     password: "mmcoep123",
     displayName: "MMCOEP Coordinator",
-    role: "MMCOEP Spoke Coordinator",
-    persona: "spoke-mmcoep",
-    spokeId: "102"
+    role: "MMCOEP Campus Coordinator",
+    persona: "campus-mmcoep",
+    campusId: "102"
   },
   "coordinator@rit.edu": {
     password: "rit123",
     displayName: "RIT Coordinator",
-    role: "RIT Spoke Coordinator",
-    persona: "spoke-rit",
-    spokeId: "103"
+    role: "RIT Campus Coordinator",
+    persona: "campus-rit",
+    campusId: "103"
   },
   "student@kle.edu": {
     password: "student123",
     displayName: "KLE Student Developer",
     role: "Student Developer",
-    persona: "spoke-kle",
-    spokeId: "3"
+    persona: "campus-kle",
+    campusId: "3"
   },
   "rahul@kle.edu": {
     password: "student123",
     displayName: "Rahul Sharma",
     role: "Student Developer",
-    persona: "spoke-kle",
-    spokeId: "3"
+    persona: "campus-kle",
+    campusId: "3"
   },
   "priya@kle.edu": {
     password: "student123",
     displayName: "Priya Patel",
     role: "Student Developer",
-    persona: "spoke-kle",
-    spokeId: "3"
+    persona: "campus-kle",
+    campusId: "3"
   },
   "rohit@kle.edu": {
     password: "student123",
     displayName: "Rohit Verma",
     role: "Student Developer",
-    persona: "spoke-kle",
-    spokeId: "3"
+    persona: "campus-kle",
+    campusId: "3"
   },
   "swati@kle.edu": {
     password: "student123",
     displayName: "Swati Mishra",
     role: "Student Developer",
-    persona: "spoke-kle",
-    spokeId: "3"
+    persona: "campus-kle",
+    campusId: "3"
   },
   "student@coep.edu": {
     password: "student123",
     displayName: "COEP Student Developer",
     role: "Student Developer",
-    persona: "spoke-coep",
-    spokeId: "101"
+    persona: "campus-coep",
+    campusId: "101"
   },
   "sneha@coep.edu": {
     password: "student123",
     displayName: "Sneha Joshi",
     role: "Student Developer",
-    persona: "spoke-coep",
-    spokeId: "101"
+    persona: "campus-coep",
+    campusId: "101"
   },
   "amit@coep.edu": {
     password: "student123",
     displayName: "Amit Waghmare",
     role: "Student Developer",
-    persona: "spoke-coep",
-    spokeId: "101"
+    persona: "campus-coep",
+    campusId: "101"
   },
   "ananya@coep.edu": {
     password: "student123",
     displayName: "Ananya Deshpande",
     role: "Student Developer",
-    persona: "spoke-coep",
-    spokeId: "101"
+    persona: "campus-coep",
+    campusId: "101"
   },
   "rohan@coep.edu": {
     password: "student123",
     displayName: "Rohan Kulkarni",
     role: "Student Developer",
-    persona: "spoke-coep",
-    spokeId: "101"
+    persona: "campus-coep",
+    campusId: "101"
   },
   "nikhil@mmcoep.edu": {
     password: "student123",
     displayName: "Nikhil Rane",
     role: "Student Developer",
-    persona: "spoke-mmcoep",
-    spokeId: "102"
+    persona: "campus-mmcoep",
+    campusId: "102"
   },
   "sayali@mmcoep.edu": {
     password: "student123",
     displayName: "Sayali Deshmukh",
     role: "Student Developer",
-    persona: "spoke-mmcoep",
-    spokeId: "102"
+    persona: "campus-mmcoep",
+    campusId: "102"
   },
   "tanmay@mmcoep.edu": {
     password: "student123",
     displayName: "Tanmay Joshi",
     role: "Student Developer",
-    persona: "spoke-mmcoep",
-    spokeId: "102"
+    persona: "campus-mmcoep",
+    campusId: "102"
   },
   "pooja@mmcoep.edu": {
     password: "student123",
     displayName: "Pooja Mehta",
     role: "Student Developer",
-    persona: "spoke-mmcoep",
-    spokeId: "102"
+    persona: "campus-mmcoep",
+    campusId: "102"
   },
   "student@rit.edu": {
     password: "student123",
     displayName: "RIT Student Developer",
     role: "Student Developer",
-    persona: "spoke-rit",
-    spokeId: "103"
+    persona: "campus-rit",
+    campusId: "103"
   },
   "tejas@rit.edu": {
     password: "student123",
     displayName: "Tejas Shinde",
     role: "Student Developer",
-    persona: "spoke-rit",
-    spokeId: "103"
+    persona: "campus-rit",
+    campusId: "103"
   },
   "priti@rit.edu": {
     password: "student123",
     displayName: "Priti Patil",
     role: "Student Developer",
-    persona: "spoke-rit",
-    spokeId: "103"
+    persona: "campus-rit",
+    campusId: "103"
   },
   "aditya@rit.edu": {
     password: "student123",
     displayName: "Aditya Shinde",
     role: "Student Developer",
-    persona: "spoke-rit",
-    spokeId: "103"
+    persona: "campus-rit",
+    campusId: "103"
   },
   "snehal@rit.edu": {
     password: "student123",
     displayName: "Snehal Pawar",
     role: "Student Developer",
-    persona: "spoke-rit",
-    spokeId: "103"
+    persona: "campus-rit",
+    campusId: "103"
   },
   "sponsor@company1.com": {
     password: "company1_123",
@@ -4385,70 +4416,70 @@ const CREDENTIALS_STORE = {
     displayName: "Prof. Deshpande",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "3"
+    campusId: "3"
   },
   "mentor2@kle.edu": {
     password: "mentor123",
     displayName: "Prof. Rajesh Kumar",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "3"
+    campusId: "3"
   },
   "mentor3@kle.edu": {
     password: "mentor123",
     displayName: "Prof. Sunita Rao",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "3"
+    campusId: "3"
   },
   "mentor@coep.edu": {
     password: "mentor123",
     displayName: "Dr. Meena Deshmukh",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "101"
+    campusId: "101"
   },
   "mentor2@coep.edu": {
     password: "mentor123",
     displayName: "Dr. Vinayak Shinde",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "101"
+    campusId: "101"
   },
   "mentor3@coep.edu": {
     password: "mentor123",
     displayName: "Dr. Shalini Patil",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "101"
+    campusId: "101"
   },
   "mentor@mmcoep.edu": {
     password: "mentor123",
     displayName: "Dr. Kavita Joshi",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "102"
+    campusId: "102"
   },
   "mentor2@mmcoep.edu": {
     password: "mentor123",
     displayName: "Prof. Anil Sawant",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "102"
+    campusId: "102"
   },
   "mentor@rit.edu": {
     password: "mentor123",
     displayName: "Dr. Suresh Desai",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "103"
+    campusId: "103"
   },
   "mentor2@rit.edu": {
     password: "mentor123",
     displayName: "Dr. Mahesh Patel",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
-    spokeId: "103"
+    campusId: "103"
   },
   "project_mentor@company1.com": {
     password: "company1_123",
@@ -4508,7 +4539,7 @@ app.post("/api/rovo/chat", async (req, res) => {
     let scopedTasks = allTasks;
     let scopedProjects = allProjects;
     
-    if (activeWorkspace === "faculty-mentor" || userRole === "Spoke Coordinator" || activeWorkspace === "meetings") {
+    if (activeWorkspace === "faculty-mentor" || userRole === "Campus Coordinator" || activeWorkspace === "meetings") {
       const targetCampus = String(campusId || "3");
       scopedProjects = allProjects.filter(p => p.allocations && p.allocations.some(a => a.targetCampusId === targetCampus));
       const epicKeys = scopedProjects.map(p => p.assignedKey).filter(Boolean);
@@ -4709,7 +4740,7 @@ app.post("/api/rovo/chat", async (req, res) => {
         });
         await newProj.save();
         
-        response = `### 🚀 Project Initialized\n\nI have successfully drafted and saved your new Corporate Project to the database.\n\n**Project Details:**\n- **Title:** ${newProj.title}\n- **Budget:** ${newProj.budget}\n- **Duration:** 3 Months\n\n**Next Action:** The project is now available in your dashboard. You can click 'Allocate' to propose this project to a target Spoke campus.`;
+        response = `### 🚀 Project Initialized\n\nI have successfully drafted and saved your new Corporate Project to the database.\n\n**Project Details:**\n- **Title:** ${newProj.title}\n- **Budget:** ${newProj.budget}\n- **Duration:** 3 Months\n\n**Next Action:** The project is now available in your dashboard. You can click 'Allocate' to propose this project to a target Campus campus.`;
       }
     }
     else {
@@ -4733,10 +4764,10 @@ async function seedDefaultChatMessages() {
     if (count === 0) {
       console.log("🌱 [SEEDING] No chat messages found. Seeding default messages...");
       const defaultMessages = [
-        { sender: "Rahul Sharma (KLE Spoke)", message: "Phase 1 lab equipment setup completed! Ready for mentor review.", campus: "KLE Spoke" },
-        { sender: "Sneha Joshi (COEP Spoke)", message: "Awesome Rahul! We just pushed our micro-controller architecture specs on board AK-21.", campus: "COEP Spoke" },
-        { sender: "Nikhil Rane (MMCOEP Spoke)", message: "RIT Spoke guys, did you finalize the pest detection model training? Need the API key.", campus: "MMCOEP Spoke" },
-        { sender: "Tejas Shinde (RIT Spoke)", message: "Yes Nikhil! Accuracy is at 94% on Jetson Nano. Testing in the lab now.", campus: "RIT Spoke" }
+        { sender: "Rahul Sharma (KLE Campus)", message: "Phase 1 lab equipment setup completed! Ready for mentor review.", campus: "KLE Campus" },
+        { sender: "Sneha Joshi (COEP Campus)", message: "Awesome Rahul! We just pushed our micro-controller architecture specs on board AK-21.", campus: "COEP Campus" },
+        { sender: "Nikhil Rane (MMCOEP Campus)", message: "RIT Campus guys, did you finalize the pest detection model training? Need the API key.", campus: "MMCOEP Campus" },
+        { sender: "Tejas Shinde (RIT Campus)", message: "Yes Nikhil! Accuracy is at 94% on Jetson Nano. Testing in the lab now.", campus: "RIT Campus" }
       ];
       await ChatMessage.insertMany(defaultMessages);
       console.log(`🌱 [SEEDING SUCCESS] Seeded ${defaultMessages.length} default chat messages!`);
@@ -4759,7 +4790,7 @@ async function seedDefaultUsers() {
           displayName: u.displayName,
           role: u.role,
           persona: u.persona,
-          spokeId: u.spokeId || null
+          campusId: u.campusId || null
         },
         { upsert: true, returnDocument: 'after' }
       );
@@ -4881,9 +4912,9 @@ mongoose.connect(process.env.MONGODB_URI)
     console.log("🌱 Connected to MongoDB Atlas successfully!");
     await seedDefaultUsers();
     // await seedDefaultProjects();
-    await seedDefaultTasks();
-    await seedDefaultMeetings();
-    await seedDefaultChatMessages();
+    // await seedDefaultTasks();
+    // await seedDefaultMeetings();
+    // await seedDefaultChatMessages();
     
     const PORT = process.env.PORT || 5001;
     // Start listening on port 5001 only after database connection is fully established and seeded!
@@ -5056,7 +5087,7 @@ app.post("/api/login", async (req, res) => {
         displayName: user.displayName,
         role: user.role,
         persona: user.persona,
-        spokeId: user.spokeId
+        campusId: user.campusId
       }
     });
   } catch (error) {
@@ -5117,7 +5148,7 @@ app.post("/api/register", async (req, res) => {
         displayName: newUser.displayName,
         role: newUser.role,
         persona: newUser.persona,
-        spokeId: newUser.spokeId
+        campusId: newUser.campusId
       }
     });
   } catch (error) {
@@ -5131,40 +5162,40 @@ app.get("/api/cohort-stats", async (req, res) => {
   try {
     const User = require("./models/User");
 
-    const SPOKE_CONFIG = [
-      { boardId: "3",   persona: "spoke-kle",   label: "KLE Spoke (Hub)" },
-      { boardId: "101", persona: "spoke-coep",  label: "COEP Spoke" },
-      { boardId: "102", persona: "spoke-mmcoep",label: "MMCOEP Spoke" },
-      { boardId: "103", persona: "spoke-rit",   label: "RIT Spoke" }
+    const CAMPUS_CONFIG = [
+      { boardId: "3",   persona: "campus-kle",   label: "KLE Campus (Hub)" },
+      { boardId: "101", persona: "campus-coep",  label: "COEP Campus" },
+      { boardId: "102", persona: "campus-mmcoep",label: "MMCOEP Campus" },
+      { boardId: "103", persona: "campus-rit",   label: "RIT Campus" }
     ];
 
     // Fetch all projects once
     const allProjects = await CorporateProject.find().lean();
 
-    // Compute per-spoke stats
-    const stats = await Promise.all(SPOKE_CONFIG.map(async (spoke) => {
+    // Compute per-campus stats
+    const stats = await Promise.all(CAMPUS_CONFIG.map(async (campus) => {
       // Count registered students (Student Developer role for this persona)
       const studentCount = await User.countDocuments({
-        persona: spoke.persona,
+        persona: campus.persona,
         role: { $not: /Coordinator|Mentor|Faculty/i }
       });
 
       // Count faculty mentors / coordinators for this persona
       const mentorCount = await User.countDocuments({
-        persona: spoke.persona,
+        persona: campus.persona,
         role: { $regex: /Coordinator|Mentor|Faculty/i }
       });
 
-      // Count active projects allocated to this spoke
+      // Count active projects allocated to this campus
       const activeProjectCount = allProjects.filter(p =>
         p.allocations && p.allocations.some(a =>
-          a.targetCampusId === spoke.boardId && a.status === "Active"
+          a.targetCampusId === campus.boardId && a.status === "Active"
         )
       ).length;
 
       // Compute avg task completion from cached mock tasks for this boardId
-      const spokeCachedTasks = (apiCache.tasks[spoke.boardId]?.data) || mockTasksStore[spoke.boardId] || [];
-      const realTasks = spokeCachedTasks.filter(t => t.fields?.issuetype?.name !== "Epic");
+      const campusCachedTasks = (apiCache.tasks[campus.boardId]?.data) || mockTasksStore[campus.boardId] || [];
+      const realTasks = campusCachedTasks.filter(t => t.fields?.issuetype?.name !== "Epic");
       const doneTasks = realTasks.filter(t =>
         (t.fields?.status?.name || t.fields?.status || "").toLowerCase() === "done"
       );
@@ -5173,8 +5204,8 @@ app.get("/api/cohort-stats", async (req, res) => {
         : 0;
 
       return {
-        boardId: spoke.boardId,
-        label: spoke.label,
+        boardId: campus.boardId,
+        label: campus.label,
         studentCount,
         mentorCount,
         activeProjectCount,
@@ -5184,7 +5215,7 @@ app.get("/api/cohort-stats", async (req, res) => {
       };
     }));
 
-    // Find top performing spoke
+    // Find top performing campus
     const top = stats.reduce((best, s) => s.taskProgress > best.taskProgress ? s : best, stats[0]);
 
     res.json({ success: true, stats, topPerformer: top });
@@ -5194,7 +5225,7 @@ app.get("/api/cohort-stats", async (req, res) => {
   }
 });
 
-// GET /api/teams - Get all Spoke custom Sprints Teams
+// GET /api/teams - Get all Campus custom Sprints Teams
 
 app.get("/api/teams", async (req, res) => {
   try {
@@ -5212,11 +5243,11 @@ app.get("/api/teams", async (req, res) => {
     res.json(teams);
   } catch (error) {
     console.error("Fetch teams error:", error);
-    res.status(500).json({ error: "Failed to fetch Spoke teams." });
+    res.status(500).json({ error: "Failed to fetch Campus teams." });
   }
 });
 
-// POST /api/teams - Create a new Spoke Sprints Team persistently in MongoDB Atlas
+// POST /api/teams - Create a new Campus Sprints Team persistently in MongoDB Atlas
 app.post("/api/teams", authenticateToken, async (req, res) => {
   try {
     const { name, boardId, members, mentor, teamLeader, projectId, subMentor } = req.body;
@@ -5249,11 +5280,11 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
     res.json({ success: true, team: newTeam });
   } catch (error) {
     console.error("Create team error:", error);
-    res.status(500).json({ error: "Failed to create Spoke team." });
+    res.status(500).json({ error: "Failed to create Campus team." });
   }
 });
 
-// DELETE /api/teams/:id - Disband and delete a Spoke Team persistently
+// DELETE /api/teams/:id - Disband and delete a Campus Team persistently
 app.delete("/api/teams/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -5262,7 +5293,7 @@ app.delete("/api/teams/:id", authenticateToken, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete team error:", error);
-    res.status(500).json({ error: "Failed to disband Spoke team." });
+    res.status(500).json({ error: "Failed to disband Campus team." });
   }
 });
 
@@ -5748,23 +5779,23 @@ app.delete("/submissions/:id", authenticateToken, async (req, res) => {
 // B2B PROJECT ASSIGNMENT & MENTOR FLOWS
 // ==========================================
 
-// GET /api/spokes/:boardId/mentors - Get all mentors belonging to a college spoke
-app.get("/api/spokes/:boardId/mentors", async (req, res) => {
+// GET /api/campuses/:boardId/mentors - Get all mentors belonging to a college campus
+app.get("/api/campuses/:boardId/mentors", async (req, res) => {
   try {
     const { boardId } = req.params;
     const personaMap = {
-      "3": "spoke-kle",
-      "101": "spoke-coep",
-      "102": "spoke-mmcoep",
-      "103": "spoke-rit"
+      "3": "campus-kle",
+      "101": "campus-coep",
+      "102": "campus-mmcoep",
+      "103": "campus-rit"
     };
-    const targetPersona = personaMap[boardId] || "spoke-kle";
+    const targetPersona = personaMap[boardId] || "campus-kle";
     
     const mentors = await User.find({
       $or: [
-        { spokeId: boardId, role: /mentor/i },
+        { campusId: boardId, role: /mentor/i },
         { persona: targetPersona, role: /mentor/i },
-        { persona: "faculty-mentor", spokeId: boardId }
+        { persona: "faculty-mentor", campusId: boardId }
       ]
     }).lean();
 
@@ -5778,26 +5809,26 @@ app.get("/api/spokes/:boardId/mentors", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error("Failed to fetch spoke mentors:", err);
-    res.status(500).json({ error: "Failed to fetch spoke mentors." });
+    console.error("Failed to fetch campus mentors:", err);
+    res.status(500).json({ error: "Failed to fetch campus mentors." });
   }
 });
 
-// GET /api/spokes/:boardId/students - Get all student developers belonging to a college spoke
-app.get("/api/spokes/:boardId/students", async (req, res) => {
+// GET /api/campuses/:boardId/students - Get all student developers belonging to a college campus
+app.get("/api/campuses/:boardId/students", async (req, res) => {
   try {
     const { boardId } = req.params;
     const personaMap = {
-      "3": "spoke-kle",
-      "101": "spoke-coep",
-      "102": "spoke-mmcoep",
-      "103": "spoke-rit"
+      "3": "campus-kle",
+      "101": "campus-coep",
+      "102": "campus-mmcoep",
+      "103": "campus-rit"
     };
-    const targetPersona = personaMap[boardId] || "spoke-kle";
+    const targetPersona = personaMap[boardId] || "campus-kle";
 
     const students = await User.find({
       $or: [
-        { spokeId: boardId, role: /student/i },
+        { campusId: boardId, role: /student/i },
         { persona: targetPersona, role: /student/i }
       ]
     }).lean();
@@ -5812,8 +5843,8 @@ app.get("/api/spokes/:boardId/students", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error("Failed to fetch spoke students:", err);
-    res.status(500).json({ error: "Failed to fetch spoke students." });
+    console.error("Failed to fetch campus students:", err);
+    res.status(500).json({ error: "Failed to fetch campus students." });
   }
 });
 
@@ -5850,10 +5881,10 @@ app.get("/api/companies/:companyName/mentors", async (req, res) => {
   }
 });
 
-// POST /api/project/:projectId/spoke/:spokeId/faculty-mentor - Assign a College Faculty Mentor
-app.post("/api/project/:projectId/spoke/:spokeId/faculty-mentor", authenticateToken, async (req, res) => {
+// POST /api/project/:projectId/campus/:campusId/faculty-mentor - Assign a College Faculty Mentor
+app.post("/api/project/:projectId/campus/:campusId/faculty-mentor", authenticateToken, async (req, res) => {
   try {
-    const { projectId, spokeId } = req.params;
+    const { projectId, campusId } = req.params;
     const { mentorId } = req.body;
 
     const project = await CorporateProject.findById(projectId);
@@ -5863,7 +5894,7 @@ app.post("/api/project/:projectId/spoke/:spokeId/faculty-mentor", authenticateTo
     if (!mentorUser) return res.status(404).json({ error: "Faculty mentor user not found." });
 
     // Update inside allocations
-    let allocation = (project.allocations || []).find(a => a.targetCampusId === spokeId);
+    let allocation = (project.allocations || []).find(a => a.targetCampusId === campusId);
     if (!allocation) {
       return res.status(400).json({ error: "Allocation for this college was not found." });
     }
@@ -5877,7 +5908,7 @@ app.post("/api/project/:projectId/spoke/:spokeId/faculty-mentor", authenticateTo
 
     allocation.facultyMentor = mentorObj;
 
-    if (project.targetCampusId === spokeId) {
+    if (project.targetCampusId === campusId) {
       project.facultyMentor = mentorObj;
     }
 
@@ -5891,10 +5922,10 @@ app.post("/api/project/:projectId/spoke/:spokeId/faculty-mentor", authenticateTo
   }
 });
 
-// POST /api/project/:projectId/spoke/:spokeId/project-mentor - Assign a Company Project Mentor
-app.post("/api/project/:projectId/spoke/:spokeId/project-mentor", authenticateToken, async (req, res) => {
+// POST /api/project/:projectId/campus/:campusId/project-mentor - Assign a Company Project Mentor
+app.post("/api/project/:projectId/campus/:campusId/project-mentor", authenticateToken, async (req, res) => {
   try {
-    const { projectId, spokeId } = req.params;
+    const { projectId, campusId } = req.params;
     const { mentorId } = req.body;
 
     const project = await CorporateProject.findById(projectId);
@@ -5904,7 +5935,7 @@ app.post("/api/project/:projectId/spoke/:spokeId/project-mentor", authenticateTo
     if (!mentorUser) return res.status(404).json({ error: "Project mentor user not found." });
 
     // Update inside allocations
-    let allocation = (project.allocations || []).find(a => a.targetCampusId === spokeId);
+    let allocation = (project.allocations || []).find(a => a.targetCampusId === campusId);
     if (!allocation) {
       return res.status(400).json({ error: "Allocation for this college was not found." });
     }
@@ -5918,7 +5949,7 @@ app.post("/api/project/:projectId/spoke/:spokeId/project-mentor", authenticateTo
 
     allocation.projectMentor = mentorObj;
 
-    if (project.targetCampusId === spokeId) {
+    if (project.targetCampusId === campusId) {
       project.projectMentor = mentorObj;
     }
 
@@ -5955,6 +5986,7 @@ app.post("/cache/clear", (req, res) => {
   invalidateCache();
   res.json({ success: true, message: "Cache successfully purged!" });
 });
+
 
 // Server startup listening has been moved inside the mongoose.connect().then() block above to guarantee correct database connection sync.
 // trigger nodemon reload for gmail config

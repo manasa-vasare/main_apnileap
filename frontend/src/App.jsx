@@ -293,18 +293,18 @@ const CompanyLogo = ({ company, size = 38 }) => {
   );
 };
 
-const SPOKES = {
-  "3": { name: "KLE Spoke", key: "APNN", live: true },
-  "101": { name: "COEP Spoke", key: "APNN", live: true },
-  "102": { name: "MMCOEP Spoke", key: "APNN", live: true },
-  "103": { name: "RIT Spoke", key: "APNN", live: true }
+const CAMPUSES = {
+  "3": { name: "KLE Campus", key: "APNN", live: true },
+  "101": { name: "COEP Campus", key: "APNN", live: true },
+  "102": { name: "MMCOEP Campus", key: "APNN", live: true },
+  "103": { name: "RIT Campus", key: "APNN", live: true }
 };
 
 const CAMPUS_LABELS = {
-  "3": "kle-spoke",
-  "101": "coep-spoke",
-  "102": "mmcoep-spoke",
-  "103": "rit-spoke"
+  "3": "kle-campus",
+  "101": "coep-campus",
+  "102": "mmcoep-campus",
+  "103": "rit-campus"
 };
 
 function CohortStatsTable() {
@@ -408,7 +408,7 @@ function CohortStatsTable() {
       {top && top.taskProgress === 0 && (
         <div style={{ background: "var(--bg-subtle)", padding: "16px", borderRadius: "8px", border: "1px solid var(--border-subtle)", marginTop: "8px", textAlign: "center" }}>
           <p style={{ fontSize: "12.5px", color: "var(--text-dim)", fontStyle: "italic" }}>
-            No sprint tasks completed across spokes yet. Progress will appear as students complete work.
+            No sprint tasks completed across campuses yet. Progress will appear as students complete work.
           </p>
         </div>
       )}
@@ -439,7 +439,7 @@ function RovoAgentWidget({ sessionUser, currentBoardId, activeWorkspace }) {
       "Show me the top performing student developers",
       "What are my upcoming syncs?"
     ];
-  } else if (sessionUser?.role === "Spoke Coordinator") {
+  } else if (sessionUser?.role === "Campus Coordinator") {
     starters = [
       "What changed this week?",
       "Show me blocked items",
@@ -646,7 +646,7 @@ function App() {
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
-  const [signupCampus, setSignupCampus] = useState("3"); // Default to "3" (KLE Spoke)
+  const [signupCampus, setSignupCampus] = useState("3"); // Default to "3" (KLE Campus)
   const [signupRole, setSignupRole] = useState("Student Developer"); // "Student Developer" or "Faculty Mentor"
   const [signupError, setSignupError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -670,7 +670,7 @@ function App() {
   const [isCreatingSprintTask, setIsCreatingSprintTask] = useState(false);
 
   // Faculty Coordinator Custom Teams Builder states
-  const [spokeTeams, setSpokeTeams] = useState([]);
+  const [campusTeams, setCampusTeams] = useState([]);
   const [isTeamsLoading, setIsTeamsLoading] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
   const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
@@ -776,7 +776,7 @@ function App() {
   const [isModeratorLoading, setIsModeratorLoading] = useState(false);
   const [selectedAssignProject, setSelectedAssignProject] = useState(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assignTargetCampus, setAssignTargetCampus] = useState("3");
+  const [assignTargetCampuses, setAssignTargetCampuses] = useState([]);
   const [assignDueDate, setAssignDueDate] = useState("2026-08-25");
   const [allocationPhases, setAllocationPhases] = useState([]);
   const [isProvisioning, setIsProvisioning] = useState(false);
@@ -787,10 +787,10 @@ function App() {
   const [isMeetingsLoading, setIsMeetingsLoading] = useState(false);
 
   const currentBoardId = useMemo(() => {
-    if (activeWorkspace === "spoke-coep") return "101";
-    if (activeWorkspace === "spoke-mmcoep") return "102";
-    if (activeWorkspace === "spoke-rit") return "103";
-    if (activeWorkspace === "spoke-kle") return "3";
+    if (activeWorkspace === "campus-coep") return "101";
+    if (activeWorkspace === "campus-mmcoep") return "102";
+    if (activeWorkspace === "campus-rit") return "103";
+    if (activeWorkspace === "campus-kle") return "3";
     return "3"; // default playground or fallback
   }, [activeWorkspace]);
 
@@ -819,7 +819,7 @@ function App() {
   // Core Data States
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [spokeMembers, setSpokeMembers] = useState([]);
+  const [campusMembers, setCampusMembers] = useState([]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -893,16 +893,16 @@ function App() {
       return "sponsor-company1";
     }
     if (cleanEmail.includes("kle") || cleanEmail.endsWith("@kletech.ac.in")) {
-      return "spoke-kle";
+      return "campus-kle";
     }
     if (cleanEmail.includes("mmcoep")) {
-      return "spoke-mmcoep";
+      return "campus-mmcoep";
     }
     if (cleanEmail.includes("coep")) {
-      return "spoke-coep";
+      return "campus-coep";
     }
     if (cleanEmail.includes("rit")) {
-      return "spoke-rit";
+      return "campus-rit";
     }
     return null;
   };
@@ -970,10 +970,10 @@ function App() {
 
     setIsRegistering(true);
     try {
-      const selectedPersona = signupCampus === "3" ? "spoke-kle" : signupCampus === "101" ? "spoke-coep" : signupCampus === "102" ? "spoke-mmcoep" : "spoke-rit";
+      const selectedPersona = signupCampus === "3" ? "campus-kle" : signupCampus === "101" ? "campus-coep" : signupCampus === "102" ? "campus-mmcoep" : "campus-rit";
       
       const campusPrefix = signupCampus === "3" ? "KLE" : signupCampus === "101" ? "COEP" : signupCampus === "102" ? "MMCOEP" : "RIT";
-      const selectedRole = signupRole === "Faculty Mentor" ? `${campusPrefix} Spoke Coordinator` : "Student Developer";
+      const selectedRole = signupRole === "Faculty Mentor" ? `${campusPrefix} Campus Coordinator` : "Student Developer";
 
       const response = await axios.post("http://localhost:5001/api/register", {
         email: signupEmail,
@@ -1151,7 +1151,7 @@ function App() {
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (!window.confirm("Are you sure you want to persistently delete this B2B corporate project? This will remove all campus spoke allocations!")) {
+    if (!window.confirm("Are you sure you want to persistently delete this B2B corporate project? This will remove all campus campus allocations!")) {
       return;
     }
     try {
@@ -1166,20 +1166,20 @@ function App() {
     }
   };
 
-  const fetchSpokeMembers = async (boardId) => {
+  const fetchCampusMembers = async (boardId) => {
     try {
-      const res = await axios.get(`http://localhost:5001/spokes/${boardId}/members`);
-      setSpokeMembers(res.data);
+      const res = await axios.get(`http://localhost:5001/campuses/${boardId}/members`);
+      setCampusMembers(res.data);
     } catch (err) {
       console.error("Failed to retrieve campus team members:", err);
     }
   };
 
-  const fetchSpokeTeams = async (boardId) => {
+  const fetchCampusTeams = async (boardId) => {
     setIsTeamsLoading(true);
     try {
       const res = await axios.get(`http://localhost:5001/api/teams?boardId=${boardId}`);
-      setSpokeTeams(res.data || []);
+      setCampusTeams(res.data || []);
     } catch (err) {
       console.error("Failed to retrieve campus teams:", err);
     } finally {
@@ -1201,7 +1201,7 @@ function App() {
     setIsCreatingTeam(true);
     try {
       const selectedMembersData = selectedTeamMembers.map(memberId => {
-        const found = spokeMembers.find(m => m.accountId === memberId);
+        const found = campusMembers.find(m => m.accountId === memberId);
         return {
           accountId: memberId,
           displayName: found ? found.displayName.replace(/ \((Student Developer|Faculty Mentor|Coordinator)\)/g, "") : "Team Member",
@@ -1210,7 +1210,7 @@ function App() {
         };
       });
 
-      const foundMentor = spokeMembers.find(m => m.accountId === selectedTeamMentor);
+      const foundMentor = campusMembers.find(m => m.accountId === selectedTeamMentor);
       const mentorData = foundMentor ? {
         accountId: selectedTeamMentor,
         displayName: foundMentor.displayName.replace(/ \((Faculty Mentor|Coordinator)\)/g, ""),
@@ -1218,7 +1218,7 @@ function App() {
         avatarUrl: foundMentor.avatarUrl
       } : null;
 
-      const foundLeader = spokeMembers.find(m => m.accountId === selectedTeamLeader);
+      const foundLeader = campusMembers.find(m => m.accountId === selectedTeamLeader);
       const teamLeaderData = foundLeader ? {
         accountId: selectedTeamLeader,
         displayName: foundLeader.displayName.replace(/ \((Student Developer)\)/g, ""),
@@ -1240,29 +1240,29 @@ function App() {
         setSelectedTeamMembers([]);
         setSelectedTeamMentor("");
         setSelectedTeamLeader("");
-        fetchSpokeTeams(currentBoardId);
+        fetchCampusTeams(currentBoardId);
       }
     } catch (err) {
       console.error(err);
-      triggerToast(err.response?.data?.error || "Failed to create custom spoke team.", "error");
+      triggerToast(err.response?.data?.error || "Failed to create custom campus team.", "error");
     } finally {
       setIsCreatingTeam(false);
     }
   };
 
   const handleDeleteTeam = async (teamId) => {
-    if (!window.confirm("Are you sure you want to disband and delete this Spoke Team persistently?")) {
+    if (!window.confirm("Are you sure you want to disband and delete this Campus Team persistently?")) {
       return;
     }
     try {
       const res = await axios.delete(`http://localhost:5001/api/teams/${teamId}`);
       if (res.data && res.data.success) {
-        triggerToast("Spoke Team successfully disbanded.");
-        fetchSpokeTeams(currentBoardId);
+        triggerToast("Campus Team successfully disbanded.");
+        fetchCampusTeams(currentBoardId);
       }
     } catch (err) {
       console.error(err);
-      triggerToast("Failed to disband Spoke Team.", "error");
+      triggerToast("Failed to disband Campus Team.", "error");
     }
   };
 
@@ -1428,11 +1428,16 @@ function App() {
     e.preventDefault();
     if (!selectedAssignProject) return;
 
+    if (assignTargetCampuses.length === 0) {
+      triggerToast("Please select at least one target campus.", "error");
+      return;
+    }
+
     setIsProvisioning(true);
     try {
       const response = await axios.post("http://localhost:5001/moderator/assign", {
         projectId: selectedAssignProject.id,
-        targetBoardId: assignTargetCampus,
+        targetBoardIds: assignTargetCampuses,
         dueDate: assignDueDate,
         phases: allocationPhases.filter(p => p.name.trim() !== "")
       });
@@ -1450,11 +1455,11 @@ function App() {
     }
   };
 
-  // Spoke Coordinator accepts B2B Project assignment (Spoke)
+  // Campus Coordinator accepts B2B Project assignment (Campus)
   const handleAcceptProject = async (projectId) => {
     setIsRespondingToProject(true);
     try {
-      const res = await axios.post(`http://localhost:5001/spoke/project/${projectId}/accept`, { targetBoardId: currentBoardId });
+      const res = await axios.post(`http://localhost:5001/campus/project/${projectId}/accept`, { targetBoardId: currentBoardId });
       if (res.data && res.data.success) {
         triggerToast(" Project accepted! Jira workspace successfully provisioned with 3 standard Phase tasks!");
         fetchModeratorProjects(false);
@@ -1468,11 +1473,11 @@ function App() {
     }
   };
 
-  // Spoke Coordinator declines B2B Project assignment (Spoke)
+  // Campus Coordinator declines B2B Project assignment (Campus)
   const handleDeclineProject = async (projectId) => {
     setIsRespondingToProject(true);
     try {
-      const res = await axios.post(`http://localhost:5001/spoke/project/${projectId}/decline`, { targetBoardId: currentBoardId });
+      const res = await axios.post(`http://localhost:5001/campus/project/${projectId}/decline`, { targetBoardId: currentBoardId });
       if (res.data && res.data.success) {
         triggerToast("Proposal declined. Project returned to the Moderator assignment pool.");
         fetchModeratorProjects(false);
@@ -1497,8 +1502,8 @@ function App() {
         fetchMeetings(false);
       } else {
         fetchJiraTasks(false);
-        fetchSpokeMembers(currentBoardId);
-        fetchSpokeTeams(currentBoardId);
+        fetchCampusMembers(currentBoardId);
+        fetchCampusTeams(currentBoardId);
         fetchModeratorProjects(true); // Fetch moderator projects silently to check for proposed B2B assignments
         fetchHubMetrics(true); // Fetch hub metrics silently to feed leaderboards!
         fetchAllSubmissions(); // Auto-load all submissions for deliverables review queue!
@@ -1532,11 +1537,11 @@ function App() {
         fetchMeetings(true);
       } else {
         fetchJiraTasks(true);
-        fetchSpokeMembers(currentBoardId);
-        fetchSpokeTeams(currentBoardId);
+        fetchCampusMembers(currentBoardId);
+        fetchCampusTeams(currentBoardId);
         fetchHubMetrics(true); // Poll hub metrics silently for leaderboards!
       }
-    }, 60000); // 60s auto-polling
+    }, 5000); // 5s auto-polling for real-time Kanban updates
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1688,39 +1693,39 @@ function App() {
     }));
   }, [filteredTasks]);
 
-  // Aggregated Leaderboard ranking KLE, COEP, MMCOEP, RIT Spokes dynamically
+  // Aggregated Leaderboard ranking KLE, COEP, MMCOEP, RIT Campuses dynamically
   const leaderboardData = useMemo(() => {
-    if (hubMetrics && Array.isArray(hubMetrics.spokes) && hubMetrics.spokes.length > 0) {
-      return [...hubMetrics.spokes].sort((a, b) => b.done - a.done);
+    if (hubMetrics && Array.isArray(hubMetrics.campuses) && hubMetrics.campuses.length > 0) {
+      return [...hubMetrics.campuses].sort((a, b) => b.done - a.done);
     }
     return [
-      { id: "3", name: "KLE Spoke", done: 12, total: 18, completionRate: 67 },
-      { id: "101", name: "COEP Spoke", done: 8, total: 15, completionRate: 53 },
-      { id: "102", name: "MMCOEP Spoke", done: 5, total: 12, completionRate: 42 },
-      { id: "103", name: "RIT Spoke", done: 3, total: 10, completionRate: 30 }
+      { id: "3", name: "KLE Campus", done: 12, total: 18, completionRate: 67 },
+      { id: "101", name: "COEP Campus", done: 8, total: 15, completionRate: 53 },
+      { id: "102", name: "MMCOEP Campus", done: 5, total: 12, completionRate: 42 },
+      { id: "103", name: "RIT Campus", done: 3, total: 10, completionRate: 30 }
     ].sort((a, b) => b.done - a.done);
   }, [hubMetrics]);
 
-  const todayMeetingsForSpoke = useMemo(() => {
+  const todayMeetingsForCampus = useMemo(() => {
     if (activeWorkspace === "hub" || activeWorkspace === "moderator" || activeWorkspace === "meetings" || activeWorkspace === "playground") return [];
     const campusId = currentBoardId;
     const todayStr = "2026-05-27";
     return meetings.filter(m => m.campusId === campusId && m.date === todayStr);
   }, [meetings, activeWorkspace, currentBoardId]);
 
-  const todayConflictsForSpoke = useMemo(() => {
+  const todayConflictsForCampus = useMemo(() => {
     const timeCounts = {};
-    todayMeetingsForSpoke.forEach(m => {
+    todayMeetingsForCampus.forEach(m => {
       timeCounts[m.time] = (timeCounts[m.time] || 0) + 1;
     });
-    return todayMeetingsForSpoke.filter(m => timeCounts[m.time] > 1);
-  }, [todayMeetingsForSpoke]);
+    return todayMeetingsForCampus.filter(m => timeCounts[m.time] > 1);
+  }, [todayMeetingsForCampus]);
 
-  const proposedProjectsForSpoke = useMemo(() => {
+  const proposedProjectsForCampus = useMemo(() => {
     if (activeWorkspace === "hub" || activeWorkspace === "moderator" || activeWorkspace === "meetings" || activeWorkspace === "playground") return [];
     const campusId = currentBoardId;
-    const spoke = SPOKES[campusId];
-    if (!spoke) return [];
+    const campus = CAMPUSES[campusId];
+    if (!campus) return [];
     return moderatorProjects.filter(p => {
       if (p.allocations && p.allocations.length > 0) {
         return p.allocations.some(a => a.targetCampusId === campusId && a.status === "Proposed");
@@ -1729,7 +1734,7 @@ function App() {
     });
   }, [moderatorProjects, activeWorkspace, currentBoardId]);
 
-  const acceptedProjectsForSpoke = useMemo(() => {
+  const acceptedProjectsForCampus = useMemo(() => {
     if (activeWorkspace === "hub" || activeWorkspace === "moderator" || activeWorkspace === "meetings" || activeWorkspace === "playground") return [];
     const campusId = currentBoardId;
     return moderatorProjects.filter(p => {
@@ -1784,7 +1789,7 @@ function App() {
   // Drag and Drop DragEnd Action
   const onDragEnd = (result) => {
     if (isCentralAdmin) {
-      triggerToast("Access Denied: Central Administrators have read-only progress tracking permission on spoke boards.", "error");
+      triggerToast("Access Denied: Central Administrators have read-only progress tracking permission on campus boards.", "error");
       return;
     }
     const { destination, source, draggableId } = result;
@@ -1846,8 +1851,8 @@ function App() {
       return;
     }
 
-    const assignedUser = spokeMembers.find(m => m.displayName === newAssignee);
-    const assignedReporterUser = spokeMembers.find(m => m.displayName === newReporter);
+    const assignedUser = campusMembers.find(m => m.displayName === newAssignee);
+    const assignedReporterUser = campusMembers.find(m => m.displayName === newReporter);
 
     const payload = {
       summary: newSummary,
@@ -2626,7 +2631,7 @@ function App() {
     
     if (portalModal === "academia") {
       title = "Select Campus Workspace";
-      const spokesList = [
+      const campusesList = [
         { id: "3", name: "KLE Tech Hub Campus", mentor: "coordinator@kle.edu", student: "student@kle.edu" },
         { id: "101", name: "COEP Campus", mentor: "coordinator@coep.edu", student: "student@coep.edu" },
         { id: "102", name: "MMCOEP Campus", mentor: "coordinator@mmcoep.edu", student: "student@mmcoep.edu" },
@@ -2635,7 +2640,7 @@ function App() {
       
       content = (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "16px" }}>
-          {spokesList.map(sp => (
+          {campusesList.map(sp => (
             <div key={sp.id} style={{
               padding: "16px",
               borderRadius: "12px",
@@ -4644,7 +4649,7 @@ function App() {
                       Sign In
                     </h3>
                     <p style={{ fontSize: "13.5px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-                      Enter your campus spoke or administrative email to connect.
+                      Enter your campus campus or administrative email to connect.
                     </p>
                   </div>
 
@@ -4739,7 +4744,7 @@ function App() {
                             ? "Executive Administrator"
                             : recognizedPersona === "moderator"
                             ? "Central Moderator"
-                            : `${recognizedPersona.replace("spoke-", "").toUpperCase()} Spoke Coordinator`}
+                            : `${recognizedPersona.replace("campus-", "").toUpperCase()} Campus Coordinator`}
                         </div>
                       )}
                     </div>
@@ -4881,7 +4886,7 @@ function App() {
                       Campus Registration
                     </h3>
                     <p style={{ fontSize: "13.5px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-                      Create a persistent account to track agile sprints, submit deliverables, or manage campus spoke projects.
+                      Create a persistent account to track agile sprints, submit deliverables, or manage campus campus projects.
                     </p>
                   </div>
 
@@ -5093,7 +5098,7 @@ function App() {
                           }}
                         >
                           <option value="Student Developer">Student Developer</option>
-                          <option value="Faculty Mentor">Faculty Mentor (Spoke Coordinator)</option>
+                          <option value="Faculty Mentor">Faculty Mentor (Campus Coordinator)</option>
                         </select>
                         <div style={{
                           position: "absolute",
@@ -5108,7 +5113,7 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Select Campus Spoke */}
+                    {/* Select Campus Campus */}
                     <div>
                       <label style={{
                         display: "block",
@@ -5119,7 +5124,7 @@ function App() {
                         textTransform: "uppercase",
                         letterSpacing: "0.8px"
                       }}>
-                        Select Campus Spoke
+                        Select Campus Campus
                       </label>
                       <div style={{ position: "relative" }}>
                         <FaGraduationCap style={{
@@ -5149,10 +5154,10 @@ function App() {
                             transition: "var(--transition-smooth)"
                           }}
                         >
-                          <option value="3">KLE Spoke (Hub Campus)</option>
-                          <option value="101">COEP Spoke</option>
-                          <option value="102">MMCOEP Spoke</option>
-                          <option value="103">RIT Spoke</option>
+                          <option value="3">KLE Campus (Hub Campus)</option>
+                          <option value="101">COEP Campus</option>
+                          <option value="102">MMCOEP Campus</option>
+                          <option value="103">RIT Campus</option>
                         </select>
                         <div style={{
                           position: "absolute",
@@ -5420,10 +5425,10 @@ function App() {
                   onClick={() => {
                     setActiveWorkspace(currentPersona);
                     setActiveView("dashboard");
-                    triggerToast(`Switched Workspace: Spoke Dashboard`);
+                    triggerToast(`Switched Workspace: Campus Dashboard`);
                   }}
                   className={`sidebar-rail-icon ${(activeWorkspace === currentPersona && activeView === "dashboard") ? "active" : ""}`}
-                  title="Spoke Dashboard"
+                  title="Campus Dashboard"
                 >
                   <FaHome size={20} />
                 </div>
@@ -5432,7 +5437,7 @@ function App() {
                   onClick={() => {
                     setActiveWorkspace(currentPersona);
                     setActiveView("kanban");
-                    triggerToast(`Switched Workspace: Spoke Sprint Kanban`);
+                    triggerToast(`Switched Workspace: Campus Sprint Kanban`);
                   }}
                   className={`sidebar-rail-icon ${(activeWorkspace === currentPersona && activeView === "kanban") ? "active" : ""}`}
                   title="Sprint Kanban Board"
@@ -5556,7 +5561,7 @@ function App() {
                         ? "Project Manager" 
                         : newPersona === "faculty-mentor" 
                           ? "Faculty Mentor" 
-                          : SPOKES[newPersona.replace("spoke-", "")]?.name || newPersona;
+                          : CAMPUSES[newPersona.replace("campus-", "")]?.name || newPersona;
                     triggerToast(`Switched Profile: Active permissions set to ${name}`);
                   }}
                   style={{
@@ -5576,10 +5581,10 @@ function App() {
                   <option value="moderator" style={{ background: "var(--bg-sidebar)" }}>Moderator</option>
                   <option value="project-manager" style={{ background: "var(--bg-sidebar)" }}>Project Manager</option>
                   <option value="faculty-mentor" style={{ background: "var(--bg-sidebar)" }}>Faculty Mentor</option>
-                  <option value="spoke-kle" style={{ background: "var(--bg-sidebar)" }}>KLE Coordinator</option>
-                  <option value="spoke-coep" style={{ background: "var(--bg-sidebar)" }}>COEP Coordinator</option>
-                  <option value="spoke-mmcoep" style={{ background: "var(--bg-sidebar)" }}>MMCOEP Coordinator</option>
-                  <option value="spoke-rit" style={{ background: "var(--bg-sidebar)" }}>RIT Coordinator</option>
+                  <option value="campus-kle" style={{ background: "var(--bg-sidebar)" }}>KLE Coordinator</option>
+                  <option value="campus-coep" style={{ background: "var(--bg-sidebar)" }}>COEP Coordinator</option>
+                  <option value="campus-mmcoep" style={{ background: "var(--bg-sidebar)" }}>MMCOEP Coordinator</option>
+                  <option value="campus-rit" style={{ background: "var(--bg-sidebar)" }}>RIT Coordinator</option>
                 </select>
               </div>
             )}
@@ -5670,51 +5675,51 @@ function App() {
               </>
             )}
 
-            {/* Spoke Campuses list */}
-            {(isCentralAdmin || currentPersona === "spoke-kle") && (
+            {/* Campus Campuses list */}
+            {(isCentralAdmin || currentPersona === "campus-kle") && (
               <SidebarNavItem
-                active={activeWorkspace === "spoke-kle"}
+                active={activeWorkspace === "campus-kle"}
                 icon={<FaBuilding />}
                 label="KLE Campus"
                 collapsed={false}
                 onClick={() => {
-                  setActiveWorkspace("spoke-kle");
+                  setActiveWorkspace("campus-kle");
                   setActiveView("dashboard");
                 }}
               />
             )}
-            {(isCentralAdmin || currentPersona === "spoke-coep") && (
+            {(isCentralAdmin || currentPersona === "campus-coep") && (
               <SidebarNavItem
-                active={activeWorkspace === "spoke-coep"}
+                active={activeWorkspace === "campus-coep"}
                 icon={<FaBuilding />}
                 label="COEP Campus"
                 collapsed={false}
                 onClick={() => {
-                  setActiveWorkspace("spoke-coep");
+                  setActiveWorkspace("campus-coep");
                   setActiveView("dashboard");
                 }}
               />
             )}
-            {(isCentralAdmin || currentPersona === "spoke-mmcoep") && (
+            {(isCentralAdmin || currentPersona === "campus-mmcoep") && (
               <SidebarNavItem
-                active={activeWorkspace === "spoke-mmcoep"}
+                active={activeWorkspace === "campus-mmcoep"}
                 icon={<FaBuilding />}
                 label="MMCOEP Campus"
                 collapsed={false}
                 onClick={() => {
-                  setActiveWorkspace("spoke-mmcoep");
+                  setActiveWorkspace("campus-mmcoep");
                   setActiveView("dashboard");
                 }}
               />
             )}
-            {(isCentralAdmin || currentPersona === "spoke-rit") && (
+            {(isCentralAdmin || currentPersona === "campus-rit") && (
               <SidebarNavItem
-                active={activeWorkspace === "spoke-rit"}
+                active={activeWorkspace === "campus-rit"}
                 icon={<FaBuilding />}
                 label="RIT Campus"
                 collapsed={false}
                 onClick={() => {
-                  setActiveWorkspace("spoke-rit");
+                  setActiveWorkspace("campus-rit");
                   setActiveView("dashboard");
                 }}
               />
@@ -5788,7 +5793,7 @@ function App() {
                 if (activeWorkspace === "moderator") return "Central Moderation Portal";
                 if (activeWorkspace === "meetings") return "Collaboration & Sync Meetings";
                 
-                let wsName = "Spoke";
+                let wsName = "Campus";
                 if (activeWorkspace === "playground") {
                   wsName = "Playground";
                 } else if (activeWorkspace === "project-manager") {
@@ -5800,7 +5805,7 @@ function App() {
                   const suffix = (sessionUser?.role === "Project Mentor" || activeWorkspace === "project-mentor") ? "Project Mentor" : "Sponsor";
                   wsName = `${company} ${suffix}`;
                 } else {
-                  wsName = SPOKES[currentBoardId]?.name || "Spoke";
+                  wsName = CAMPUSES[currentBoardId]?.name || "Campus";
                 }
                 
                 return activeView === "dashboard"
@@ -6136,6 +6141,7 @@ function App() {
             onRefresh={() => fetchModeratorProjects(false)}
             onAssignClick={(proj) => {
               setSelectedAssignProject(proj);
+              setAssignTargetCampuses([]);
               setAllocationPhases(
                 proj.phases && proj.phases.length > 0 
                   ? proj.phases.map(p => ({ name: p.name, description: p.description || "" }))
@@ -6181,7 +6187,7 @@ function App() {
             }}
             triggerToast={triggerToast}
             sessionUser={sessionUser}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            campuses={Object.entries(CAMPUSES).map(([id, campus]) => ({ id, ...campus }))}
             tasks={tasks}
             meetings={meetings}
           />
@@ -6191,13 +6197,13 @@ function App() {
             loading={isModeratorLoading}
             onRefresh={() => fetchModeratorProjects(false)}
             triggerToast={triggerToast}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            campuses={Object.entries(CAMPUSES).map(([id, campus]) => ({ id, ...campus }))}
           />
         ) : activeWorkspace === "faculty-mentor" ? (
           <FacultyMentorDashboardView
             sessionUser={sessionUser}
             triggerToast={triggerToast}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            campuses={Object.entries(CAMPUSES).map(([id, campus]) => ({ id, ...campus }))}
             allSubmissions={allSubmissions}
             handleUpdateSubmissionStatus={handleUpdateSubmissionStatus}
             meetings={meetings}
@@ -6209,14 +6215,14 @@ function App() {
             meetings={meetings}
             loading={isMeetingsLoading}
             onRefresh={() => fetchMeetings(false)}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            campuses={Object.entries(CAMPUSES).map(([id, campus]) => ({ id, ...campus }))}
             triggerToast={triggerToast}
             moderatorProjects={moderatorProjects}
           />
         ) : (
           <>
             {/* Proposed B2B Project Decision Banner (Multi-tenant Coordinator Review Privilege) */}
-            {sessionUser?.role !== "Student Developer" && proposedProjectsForSpoke.map((proj) => (
+            {sessionUser?.role !== "Student Developer" && proposedProjectsForCampus.map((proj) => (
               <div key={proj.id} className="glass-panel pulse-glow" style={{
                 background: theme === "dark"
                   ? "rgba(45, 212, 191, 0.08)"
@@ -6251,7 +6257,7 @@ function App() {
                     borderRadius: "6px",
                     textTransform: "uppercase"
                   }}>
-                    Awaiting Spoke Decision
+                    Awaiting Campus Decision
                   </span>
                 </div>
 
@@ -6291,7 +6297,7 @@ function App() {
                   <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--border-glass)", paddingTop: "14px", marginTop: "4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-muted)", fontSize: "13.5px", fontStyle: "italic", background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-glass)", padding: "10px 18px", borderRadius: "8px" }}>
                       <span>ℹ️</span>
-                      <span>Accepting or declining proposals is restricted to Spoke Coordinators. (Read-Only Mode)</span>
+                      <span>Accepting or declining proposals is restricted to Campus Coordinators. (Read-Only Mode)</span>
                     </div>
                   </div>
                 ) : (
@@ -6331,19 +6337,19 @@ function App() {
               </div>
             ))}
 
-            {todayMeetingsForSpoke.length > 0 && (
+            {todayMeetingsForCampus.length > 0 && (
               <div className="glass-panel" style={{
-                background: todayConflictsForSpoke.length > 0
+                background: todayConflictsForCampus.length > 0
                   ? (theme === "dark"
                     ? "rgba(239, 68, 68, 0.1)"
                     : "rgba(239, 68, 68, 0.04)")
                   : (theme === "dark"
                     ? "rgba(13, 148, 136, 0.1)"
                     : "rgba(13, 148, 136, 0.04)"),
-                border: todayConflictsForSpoke.length > 0
+                border: todayConflictsForCampus.length > 0
                   ? "1.5px solid rgba(239, 68, 68, 0.35)"
                   : "1.5px solid var(--border-glass)",
-                boxShadow: todayConflictsForSpoke.length > 0
+                boxShadow: todayConflictsForCampus.length > 0
                   ? "var(--shadow-premium), 0 0 25px rgba(239, 68, 68, 0.12)"
                   : "var(--shadow-premium), 0 0 25px rgba(13, 148, 136, 0.08)",
                 padding: "20px 24px",
@@ -6352,16 +6358,16 @@ function App() {
                 flexDirection: "column",
                 gap: "16px",
                 marginBottom: "25px",
-                animation: todayConflictsForSpoke.length > 0 ? "pulse-glow 3s infinite alternate" : "pulse-glow 5s infinite alternate"
+                animation: todayConflictsForCampus.length > 0 ? "pulse-glow 3s infinite alternate" : "pulse-glow 5s infinite alternate"
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-glass)", paddingBottom: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ fontSize: "24px" }}><FaCalendarAlt /></span>
                     <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "850", color: "var(--text-main)" }}>
-                      Today's FIP Sprint Syncs Scheduled ({todayMeetingsForSpoke.length})
+                      Today's FIP Sprint Syncs Scheduled ({todayMeetingsForCampus.length})
                     </h4>
                   </div>
-                  {todayConflictsForSpoke.length > 0 && (
+                  {todayConflictsForCampus.length > 0 && (
                     <span style={{
                       fontSize: "11px",
                       fontWeight: "800",
@@ -6379,7 +6385,7 @@ function App() {
                   )}
                 </div>
 
-                {todayConflictsForSpoke.length > 0 && (
+                {todayConflictsForCampus.length > 0 && (
                   <div style={{
                     display: "flex",
                     alignItems: "center",
@@ -6401,8 +6407,8 @@ function App() {
                 )}
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {todayMeetingsForSpoke.map((meet) => {
-                    const hasConflict = todayConflictsForSpoke.some(c => c.id === meet.id);
+                  {todayMeetingsForCampus.map((meet) => {
+                    const hasConflict = todayConflictsForCampus.some(c => c.id === meet.id);
                     return (
                       <div key={meet.id} style={{
                         display: "flex",
@@ -6504,7 +6510,7 @@ function App() {
                           Welcome Back, {sessionUser?.displayName}!
                         </h2>
                         <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-                          Student Developer at <strong style={{ color: "var(--primary)" }}>{SPOKES[currentBoardId]?.name || "Our Campus Spoke"}</strong>. Track your active sprint tasks, review mentor feedback, and submit your deliverables.
+                          Student Developer at <strong style={{ color: "var(--primary)" }}>{CAMPUSES[currentBoardId]?.name || "Our Campus Campus"}</strong>. Track your active sprint tasks, review mentor feedback, and submit your deliverables.
                         </p>
                       </div>
                       <span style={{
@@ -6523,13 +6529,13 @@ function App() {
 
                     {/* Student Accountable Metrics Card Row */}
                     {(() => {
-                      const mySpokeTasks = tasks.filter(t => {
-                        const spokeLabel = CAMPUS_LABELS[currentBoardId];
+                      const myCampusTasks = tasks.filter(t => {
+                        const campusLabel = CAMPUS_LABELS[currentBoardId];
                         const labels = t.fields?.labels || [];
-                        return labels.includes(spokeLabel);
+                        return labels.includes(campusLabel);
                       });
 
-                      const myTeams = Array.isArray(spokeTeams) ? spokeTeams.filter(team => 
+                      const myTeams = Array.isArray(campusTeams) ? campusTeams.filter(team => 
                         team && Array.isArray(team.members) && team.members.some(m => 
                           m && (
                             m.accountId === sessionUser?.accountId || 
@@ -6575,7 +6581,7 @@ function App() {
                         };
                       });
 
-                      const myAssignedTasks = mySpokeTasks.filter(t => {
+                      const myAssignedTasks = myCampusTasks.filter(t => {
                         const assigneeEmail = t.fields?.assignee?.email || t.fields?.assignee?.emailAddress || "";
                         const assigneeAccountId = t.fields?.assignee?.accountId ? t.fields.assignee.accountId.toString() : "";
                         const currentUserEmail = sessionUser?.email || "";
@@ -6736,13 +6742,13 @@ function App() {
                         
                         {/* 1. Active Tasks Assigned to Me */}
                         {(() => {
-                          const mySpokeTasks = tasks.filter(t => {
-                            const spokeLabel = CAMPUS_LABELS[currentBoardId];
+                          const myCampusTasks = tasks.filter(t => {
+                            const campusLabel = CAMPUS_LABELS[currentBoardId];
                             const labels = t.fields?.labels || [];
-                            return labels.includes(spokeLabel);
+                            return labels.includes(campusLabel);
                           });
 
-                          const myTeams = Array.isArray(spokeTeams) ? spokeTeams.filter(team => 
+                          const myTeams = Array.isArray(campusTeams) ? campusTeams.filter(team => 
                             team && Array.isArray(team.members) && team.members.some(m => 
                               m && (
                                 m.accountId === sessionUser?.accountId || 
@@ -6752,7 +6758,7 @@ function App() {
                           ) : [];
                           const myTeamIds = myTeams.map(team => team && team._id ? team._id.toString() : "");
 
-                          const myAssignedTasks = mySpokeTasks.filter(t => {
+                          const myAssignedTasks = myCampusTasks.filter(t => {
                             const assigneeEmail = t.fields?.assignee?.email || t.fields?.assignee?.emailAddress || "";
                             const assigneeAccountId = t.fields?.assignee?.accountId ? t.fields.assignee.accountId.toString() : "";
                             const currentUserEmail = sessionUser?.email || "";
@@ -6977,23 +6983,23 @@ function App() {
 
                       </div>
 
-                      {/* Right: Spoke Leaderboard & B2B Projects */}
+                      {/* Right: Campus Leaderboard & B2B Projects */}
                       <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
                         
                         {/* Dynamic Leaderboard for Student Pride */}
                         <div className="glass-panel" style={{ padding: "24px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                            <h3 style={{ fontSize: "14px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", margin: 0 }}>Spoke Leaderboard</h3>
+                            <h3 style={{ fontSize: "14px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", margin: 0 }}>Campus Leaderboard</h3>
                             <span style={{ fontSize: "10px", color: "var(--primary)", fontWeight: "800", background: "var(--primary-glow)", padding: "2px 8px", borderRadius: "20px" }}>Live Rank</span>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            {leaderboardData.map((spoke, idx) => {
-                              const isCurrent = spoke.id === currentBoardId || (spoke.name && spoke.name.includes(SPOKES[currentBoardId]?.name));
+                            {leaderboardData.map((campus, idx) => {
+                              const isCurrent = campus.id === currentBoardId || (campus.name && campus.name.includes(CAMPUSES[currentBoardId]?.name));
                               const medal = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : "Rank";
-                              const pct = spoke.total > 0 ? Math.round((spoke.done / spoke.total) * 100) : 0;
+                              const pct = campus.total > 0 ? Math.round((campus.done / campus.total) * 100) : 0;
                               
                               return (
-                                <div key={spoke.id || spoke.name} style={{
+                                <div key={campus.id || campus.name} style={{
                                   display: "flex",
                                   flexDirection: "column",
                                   gap: "6px",
@@ -7007,11 +7013,11 @@ function App() {
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                       <span style={{ fontSize: "14px" }}>{medal}</span>
                                       <span style={{ fontSize: "12px", fontWeight: isCurrent ? "800" : "600", color: isCurrent ? "var(--primary)" : "var(--text-main)" }}>
-                                        {spoke.name} {isCurrent && ""}
+                                        {campus.name} {isCurrent && ""}
                                       </span>
                                     </div>
                                     <span style={{ fontSize: "11px", fontFamily: "var(--mono)", color: "var(--text-main)", fontWeight: "750" }}>
-                                      {spoke.done} / {spoke.total} ({pct}%)
+                                      {campus.done} / {campus.total} ({pct}%)
                                     </span>
                                   </div>
                                   <div style={{ height: "4px", background: "rgba(255,255,255,0.03)", borderRadius: "2px", overflow: "hidden", border: "1px solid var(--border-glass)" }}>
@@ -7036,7 +7042,7 @@ function App() {
                             My Collaborative Teams
                           </h3>
                           {(() => {
-                            const myTeamsList = Array.isArray(spokeTeams) ? spokeTeams.filter(team => 
+                            const myTeamsList = Array.isArray(campusTeams) ? campusTeams.filter(team => 
                               team && Array.isArray(team.members) && team.members.some(m => 
                                 m && (
                                   m.accountId === sessionUser?.accountId || 
@@ -7139,13 +7145,13 @@ function App() {
                           })()}
                         </div>
 
-                        {/* Active B2B Spoke Project */}
-                        {acceptedProjectsForSpoke.length > 0 && (
+                        {/* Active B2B Campus Project */}
+                        {acceptedProjectsForCampus.length > 0 && (
                           <div className="glass-panel" style={{ padding: "20px 24px" }}>
                             <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                               Active B2B Sponsor Project
                             </h3>
-                            {acceptedProjectsForSpoke.slice(0, 1).map((proj) => {
+                            {acceptedProjectsForCampus.slice(0, 1).map((proj) => {
                               const epicKey = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId)?.assignedKey : proj.assignedKey;
                               return (
                                 <div key={proj.id} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -7236,14 +7242,14 @@ function App() {
 
                       <button
                         type="button"
-                        onClick={() => setActiveCoordinatorTab("spoke-teams")}
+                        onClick={() => setActiveCoordinatorTab("campus-teams")}
                         style={{
                           padding: "8px 18px",
                           borderRadius: "8px",
                           border: "1px solid transparent",
-                          background: activeCoordinatorTab === "spoke-teams" ? "rgba(99, 102, 241, 0.12)" : "transparent",
-                          color: activeCoordinatorTab === "spoke-teams" ? "var(--primary)" : "var(--text-muted)",
-                          borderColor: activeCoordinatorTab === "spoke-teams" ? "rgba(99, 102, 241, 0.25)" : "transparent",
+                          background: activeCoordinatorTab === "campus-teams" ? "rgba(99, 102, 241, 0.12)" : "transparent",
+                          color: activeCoordinatorTab === "campus-teams" ? "var(--primary)" : "var(--text-muted)",
+                          borderColor: activeCoordinatorTab === "campus-teams" ? "rgba(99, 102, 241, 0.25)" : "transparent",
                           fontWeight: "750",
                           fontSize: "12.5px",
                           cursor: "pointer",
@@ -7253,7 +7259,7 @@ function App() {
                           gap: "8px"
                         }}
                       >
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUsers /></span> Spoke Teams &amp; Projects
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUsers /></span> Campus Teams &amp; Projects
                       </button>
                     </div>
 
@@ -7269,7 +7275,7 @@ function App() {
                           <DashboardCard
                             title="Total Tasks"
                             value={metrics.total}
-                            subtitle="Matching active Spoke sprint"
+                            subtitle="Matching active Campus sprint"
                             glow={true}
                           />
                           <DashboardCard
@@ -7283,19 +7289,19 @@ function App() {
                           <DashboardCard
                             title="Need Review"
                             value={allSubmissions.filter(sub => {
-                              const userPersona = currentPersona.replace("spoke-", "");
-                              const subSpoke = sub.studentName && sub.studentName.toLowerCase();
-                              const targetSpoke = userPersona === "kle" ? "kle" : userPersona === "coep" ? "coep" : userPersona === "mmcoep" ? "mmcoep" : "rit";
-                              const isMatch = subSpoke && (subSpoke.includes(targetSpoke) || subSpoke.includes("student"));
+                              const userPersona = currentPersona.replace("campus-", "");
+                              const subCampus = sub.studentName && sub.studentName.toLowerCase();
+                              const targetCampus = userPersona === "kle" ? "kle" : userPersona === "coep" ? "coep" : userPersona === "mmcoep" ? "mmcoep" : "rit";
+                              const isMatch = subCampus && (subCampus.includes(targetCampus) || subCampus.includes("student"));
                               return isMatch && sub.status === "Awaiting Review";
                             }).length}
                             subtitle="Awaiting coordinator review"
                             themeColor="var(--status-progress-text)"
                             pulse={allSubmissions.filter(sub => {
-                              const userPersona = currentPersona.replace("spoke-", "");
-                              const subSpoke = sub.studentName && sub.studentName.toLowerCase();
-                              const targetSpoke = userPersona === "kle" ? "kle" : userPersona === "coep" ? "coep" : userPersona === "mmcoep" ? "mmcoep" : "rit";
-                              const isMatch = subSpoke && (subSpoke.includes(targetSpoke) || subSpoke.includes("student"));
+                              const userPersona = currentPersona.replace("campus-", "");
+                              const subCampus = sub.studentName && sub.studentName.toLowerCase();
+                              const targetCampus = userPersona === "kle" ? "kle" : userPersona === "coep" ? "coep" : userPersona === "mmcoep" ? "mmcoep" : "rit";
+                              const isMatch = subCampus && (subCampus.includes(targetCampus) || subCampus.includes("student"));
                               return isMatch && sub.status === "Awaiting Review";
                             }).length > 0}
                           />
@@ -7310,12 +7316,12 @@ function App() {
 
                         {/* Student Deliverables Verification Queue */}
                         {(() => {
-                          const userPersona = currentPersona.replace("spoke-", "");
-                          const targetSpoke = userPersona === "kle" ? "kle" : userPersona === "coep" ? "coep" : userPersona === "mmcoep" ? "mmcoep" : "rit";
+                          const userPersona = currentPersona.replace("campus-", "");
+                          const targetCampus = userPersona === "kle" ? "kle" : userPersona === "coep" ? "coep" : userPersona === "mmcoep" ? "mmcoep" : "rit";
                           
-                          const spokeSubmissions = allSubmissions.filter(sub => {
-                            const subSpoke = sub.studentName && sub.studentName.toLowerCase();
-                            const isMatch = subSpoke && subSpoke.includes(targetSpoke);
+                          const campusSubmissions = allSubmissions.filter(sub => {
+                            const subCampus = sub.studentName && sub.studentName.toLowerCase();
+                            const isMatch = subCampus && subCampus.includes(targetCampus);
                             return isMatch || currentPersona === "moderator" || currentPersona === "executive";
                           });
 
@@ -7341,7 +7347,7 @@ function App() {
                                 </span>
                               </div>
 
-                              {spokeSubmissions.length > 0 ? (
+                              {campusSubmissions.length > 0 ? (
                                 <div style={{ overflowX: "auto" }}>
                                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", color: "var(--text-main)", textAlign: "left" }}>
                                     <thead>
@@ -7354,7 +7360,7 @@ function App() {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {spokeSubmissions.map((sub) => {
+                                      {campusSubmissions.map((sub) => {
                                         const badgeBg = sub.status === "Approved" ? "rgba(45, 212, 191, 0.08)" : sub.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.08)" : "rgba(251, 146, 60, 0.08)";
                                         const badgeColor = sub.status === "Approved" ? "#2dd4bf" : sub.status === "Re-work Requested" ? "#ef4444" : "var(--accent)";
                                         const badgeBorder = sub.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.2)" : sub.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)";
@@ -7519,7 +7525,7 @@ function App() {
                                   color: "var(--text-dim)",
                                   fontSize: "13px"
                                 }}>
-                                  No deliverables have been submitted by Spoke student developers for review yet.
+                                  No deliverables have been submitted by Campus student developers for review yet.
                                 </div>
                               )}
                             </div>
@@ -7606,7 +7612,7 @@ function App() {
                             </div>
                           </div>
 
-                          {/* Dynamic Campus Spoke Leaderboard */}
+                          {/* Dynamic Campus Campus Leaderboard */}
                           <div className="glass-panel" style={{
                             padding: "24px",
                             display: "flex",
@@ -7618,19 +7624,19 @@ function App() {
                             boxShadow: "0 10px 30px -10px rgba(0,0,0,0.04)"
                           }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                              <h3 style={{ fontSize: "15px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", margin: 0 }}>Spoke Leaderboard</h3>
+                              <h3 style={{ fontSize: "15px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", margin: 0 }}>Campus Leaderboard</h3>
                               <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "750", background: "var(--primary-glow)", padding: "2px 8px", borderRadius: "20px" }}>Live Velocity</span>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", flex: 1, paddingRight: "4px" }}>
-                              {leaderboardData.map((spoke, idx) => {
-                                const isCurrent = spoke.id === currentBoardId || (spoke.name && spoke.name.includes(SPOKES[currentBoardId]?.name));
+                              {leaderboardData.map((campus, idx) => {
+                                const isCurrent = campus.id === currentBoardId || (campus.name && campus.name.includes(CAMPUSES[currentBoardId]?.name));
                                 const medal = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : "Rank";
                                 const glowBorder = isCurrent ? "1px solid var(--primary)" : "1px solid var(--border-glass)";
                                 const bgHighlight = isCurrent ? "var(--primary-glow)" : "rgba(255,255,255,0.01)";
-                                const pct = spoke.total > 0 ? Math.round((spoke.done / spoke.total) * 100) : 0;
+                                const pct = campus.total > 0 ? Math.round((campus.done / campus.total) * 100) : 0;
                                 
                                 return (
-                                  <div key={spoke.id || spoke.name} style={{
+                                  <div key={campus.id || campus.name} style={{
                                     display: "flex",
                                     flexDirection: "column",
                                     gap: "6px",
@@ -7645,11 +7651,11 @@ function App() {
                                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                         <span style={{ fontSize: "16px" }}>{medal}</span>
                                         <span style={{ fontSize: "13px", fontWeight: isCurrent ? "800" : "600", color: isCurrent ? "var(--primary)" : "var(--text-main)" }}>
-                                          {spoke.name} {isCurrent && ""}
+                                          {campus.name} {isCurrent && ""}
                                         </span>
                                       </div>
                                       <span style={{ fontSize: "12.5px", fontFamily: "var(--mono)", color: "var(--text-main)", fontWeight: "750" }}>
-                                        {spoke.done} / {spoke.total} Done ({pct}%)
+                                        {campus.done} / {campus.total} Done ({pct}%)
                                       </span>
                                     </div>
                                     <div style={{ height: "6px", background: "rgba(255,255,255,0.03)", borderRadius: "3px", overflow: "hidden", border: "1px solid var(--border-glass)" }}>
@@ -7800,11 +7806,11 @@ function App() {
                         gap: "20px"
                       }}>
                           <h3 style={{ fontSize: "16px", fontWeight: "800", color: "var(--text-main)", margin: "0 0 10px 0" }}>
-                            Active B2B Corporate Projects Allocated to {SPOKES[currentBoardId]?.name || "Our Campus"}
+                            Active B2B Corporate Projects Allocated to {CAMPUSES[currentBoardId]?.name || "Our Campus"}
                           </h3>
 
-                          {acceptedProjectsForSpoke.length > 0 ? (
-                            acceptedProjectsForSpoke.map((proj) => {
+                          {acceptedProjectsForCampus.length > 0 ? (
+                            acceptedProjectsForCampus.map((proj) => {
                               // Calculate milestones progress
                               const expectedSummary = `[${proj.company}] ${proj.title}`;
                               const epicKey = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId)?.assignedKey : proj.assignedKey;
@@ -7893,7 +7899,7 @@ function App() {
                                                   const mentorId = e.target.value;
                                                   if (!mentorId) return;
                                                   try {
-                                                    const res = await axios.post(`http://localhost:5001/api/project/${proj._id || proj.id}/spoke/${currentBoardId}/faculty-mentor`, { mentorId });
+                                                    const res = await axios.post(`http://localhost:5001/api/project/${proj._id || proj.id}/campus/${currentBoardId}/faculty-mentor`, { mentorId });
                                                     if (res.data && res.data.success) {
                                                       triggerToast("Faculty Mentor assigned successfully!");
                                                       fetchModeratorProjects(true); // reload projects list
@@ -7906,7 +7912,7 @@ function App() {
                                                 style={{ width: "100%", padding: "6px 8px", background: "#1f2937", border: "1px solid var(--border-glass)", borderRadius: "6px", color: "white", fontSize: "11px", outline: "none", cursor: "pointer" }}
                                               >
                                                 <option value="">-- Assign Faculty Mentor --</option>
-                                                {spokeMembers.filter(m => {
+                                                {campusMembers.filter(m => {
                                                   const r = (m.role || "").toLowerCase();
                                                   const d = (m.displayName || "").toLowerCase();
                                                   return r.includes("mentor") || r.includes("faculty") || r.includes("professor") || d.includes("mentor") || d.includes("faculty") || d.includes("professor");
@@ -7949,33 +7955,33 @@ function App() {
                             })
                           ) : (
                             <div className="glass-panel" style={{ padding: "30px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                              No active corporate projects have been allocated to your campus spoke yet.
+                              No active corporate projects have been allocated to your campus campus yet.
                             </div>
                           )}
                         </div>
                     )}
 
-                    {/* TAB: SPOKE TEAMS & PROJECTS */}
-                    {activeCoordinatorTab === "spoke-teams" && (
+                    {/* TAB: CAMPUS TEAMS & PROJECTS */}
+                    {activeCoordinatorTab === "campus-teams" && (
                       <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                           <div>
                             <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "var(--text-main)" }}>
-                              🏛️ {SPOKES[currentBoardId]?.name || "This Spoke"} — Active Projects &amp; Teams
+                              🏛️ {CAMPUSES[currentBoardId]?.name || "This Campus"} — Active Projects &amp; Teams
                             </h3>
                             <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
-                              All B2B corporate projects your spoke is working on, with teams, student members, and collaboration spaces.
+                              All B2B corporate projects your campus is working on, with teams, student members, and collaboration spaces.
                             </p>
                           </div>
                           <span style={{ fontSize: "11px", fontWeight: "800", background: "rgba(99,102,241,0.08)", color: "var(--primary)", padding: "4px 12px", borderRadius: "20px", border: "1px solid rgba(99,102,241,0.2)" }}>
-                            {acceptedProjectsForSpoke.length} Active Project{acceptedProjectsForSpoke.length !== 1 ? "s" : ""}
+                            {acceptedProjectsForCampus.length} Active Project{acceptedProjectsForCampus.length !== 1 ? "s" : ""}
                           </span>
                         </div>
 
-                        {acceptedProjectsForSpoke.length > 0 ? acceptedProjectsForSpoke.map((proj) => {
-                          const teamsForProj = Array.isArray(spokeTeams)
-                            ? spokeTeams.filter(t => t.projectId === (proj._id || proj.id))
+                        {acceptedProjectsForCampus.length > 0 ? acceptedProjectsForCampus.map((proj) => {
+                          const teamsForProj = Array.isArray(campusTeams)
+                            ? campusTeams.filter(t => t.projectId === (proj._id || proj.id))
                             : [];
 
                           const epicAlloc = proj.allocations?.find(a => a.targetCampusId === currentBoardId);
@@ -8110,7 +8116,7 @@ function App() {
                           );
                         }) : (
                           <div className="glass-panel" style={{ padding: "40px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                            No active corporate projects allocated to your spoke yet.
+                            No active corporate projects allocated to your campus yet.
                           </div>
                         )}
                       </div>
@@ -8302,7 +8308,7 @@ function App() {
                     onChange={(e) => setNewAssignee(e.target.value)}
                   >
                     <option value="">Unassigned</option>
-                    {spokeMembers.map(m => (
+                    {campusMembers.map(m => (
                       <option key={m.accountId} value={m.displayName}>{m.displayName}</option>
                     ))}
                   </select>
@@ -8316,7 +8322,7 @@ function App() {
                     onChange={(e) => setNewReporter(e.target.value)}
                   >
                     <option value="">Unreported</option>
-                    {spokeMembers.map(m => (
+                    {campusMembers.map(m => (
                       <option key={m.accountId} value={m.displayName}>{m.displayName}</option>
                     ))}
                   </select>
@@ -8702,7 +8708,7 @@ function App() {
                         disabled={isCentralAdmin}
                         value={selectedTask.fields.assignee?.displayName || ""}
                         onChange={(e) => {
-                          const foundUser = spokeMembers.find(m => m.displayName === e.target.value);
+                          const foundUser = campusMembers.find(m => m.displayName === e.target.value);
                           handleUpdateTaskDetail({
                             ...selectedTask,
                             fields: {
@@ -8718,7 +8724,7 @@ function App() {
                         style={{ height: "36px", padding: "6px 12px", fontSize: "13px", cursor: isCentralAdmin ? "not-allowed" : "pointer" }}
                       >
                         <option value="">Unassigned</option>
-                        {spokeMembers.map(m => (
+                        {campusMembers.map(m => (
                           <option key={m.accountId} value={m.displayName}>{m.displayName}</option>
                         ))}
                       </select>
@@ -8801,7 +8807,7 @@ function App() {
                           fontWeight: "750"
                         }}
                         onClick={() => handleOpenEmailComposer(selectedTask)}
-                        title={isCentralAdmin ? "Central Administrators cannot send email alerts from spoke boards" : selectedTask.fields.assignee ? "Send alert email to assignee" : "Assign task to a team member to trigger alerts"}
+                        title={isCentralAdmin ? "Central Administrators cannot send email alerts from campus boards" : selectedTask.fields.assignee ? "Send alert email to assignee" : "Assign task to a team member to trigger alerts"}
                       >
                         <FaEnvelope size={12} />
                         <span>Send Email Alert</span>
@@ -9608,21 +9614,33 @@ function App() {
               
               {/* Target Campus Selector */}
               <div>
-                <label style={modalLabelStyle}>Target Institution Campus *</label>
-                <select
-                  className="form-select"
-                  required
-                  value={assignTargetCampus}
-                  onChange={(e) => setAssignTargetCampus(e.target.value)}
-                  style={{ width: "100%", padding: "10px 14px", height: "42px", fontSize: "14px" }}
-                >
-                  <option value="3">KLE Spoke (Live Jira - Key: AK)</option>
-                  <option value="101">COEP Spoke (Live Jira - Key: AK)</option>
-                  <option value="102">MMCOEP Spoke (Live Jira - Key: AK)</option>
-                  <option value="103">RIT Spoke (Live Jira - Key: AK)</option>
-                </select>
+                <label style={modalLabelStyle}>Target Institution Campuses *</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "var(--bg-input)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
+                  {[
+                    { id: "3", label: "KLE Campus (Live Jira - Key: AK)" },
+                    { id: "101", label: "COEP Campus (Live Jira - Key: AK)" },
+                    { id: "102", label: "MMCOEP Campus (Live Jira - Key: AK)" },
+                    { id: "103", label: "RIT Campus (Live Jira - Key: AK)" }
+                  ].map(campus => (
+                    <label key={campus.id} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "var(--text-main)", cursor: "pointer" }}>
+                      <input 
+                        type="checkbox" 
+                        value={campus.id} 
+                        checked={assignTargetCampuses.includes(campus.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAssignTargetCampuses(prev => [...prev, campus.id]);
+                          } else {
+                            setAssignTargetCampuses(prev => prev.filter(id => id !== campus.id));
+                          }
+                        }}
+                      />
+                      {campus.label}
+                    </label>
+                  ))}
+                </div>
                 <p style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "6px", lineHeight: "1.4" }}>
-                  All Spoke campuses are 100% active and connected directly to their backing Agile boards in your Atlassian Jira Cloud instance.
+                  Select one or more Campus campuses to allocate this project. All Campuses are connected to their backing Agile boards.
                 </p>
               </div>
 
@@ -10989,8 +11007,8 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
     );
   }
 
-  const totalIssues = metrics.spokes.reduce((sum, s) => sum + s.total, 0);
-  const totalDone = metrics.spokes.reduce((sum, s) => sum + s.done, 0);
+  const totalIssues = metrics.campuses.reduce((sum, s) => sum + s.total, 0);
+  const totalDone = metrics.campuses.reduce((sum, s) => sum + s.done, 0);
   const globalCompletionRate = totalIssues > 0 ? Math.round((totalDone / totalIssues) * 100) : 0;
   const totalBlockers = metrics.blockers.length;
 
@@ -11042,7 +11060,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             Global Executive Portfolio & Agile Hub
           </h2>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-            Oversee multi-tenant academic deliverables, critical spoke escalations, and B2B corporate sponsorship allocations.
+            Oversee multi-tenant academic deliverables, critical campus escalations, and B2B corporate sponsorship allocations.
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
@@ -11090,7 +11108,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             gap: "8px"
           }}
         >
-          <span><span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaUniversity /> Spoke Institutions Hub</span></span>
+          <span><span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaUniversity /> Campus Institutions Hub</span></span>
         </button>
         <button
           onClick={() => setActiveTab("b2b")}
@@ -11124,7 +11142,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             <DashboardCard
               title="Global Scoped Tasks"
               value={totalIssues}
-              subtitle="Across all active spokes"
+              subtitle="Across all active campuses"
               glow={true}
             />
             <DashboardCard
@@ -11142,7 +11160,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
               alert={totalBlockers > 0}
             />
             <DashboardCard
-              title="Active Spokes"
+              title="Active Campuses"
               value="4 / 4"
               subtitle="KLE, COEP, MMCOEP, RIT"
               themeColor="var(--primary)"
@@ -11155,20 +11173,20 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
             gap: "24px"
           }}>
-            {/* Spokes Progress Bar Chart */}
+            {/* Campuses Progress Bar Chart */}
             <div className="glass-panel" style={{ padding: "24px", display: "flex", flexDirection: "column", height: "360px", border: "1px solid rgba(0,0,0,0.04)", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.04)" }}>
               <h3 style={{ fontSize: "15px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                College Spoke Progress
+                College Campus Progress
               </h3>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={metrics.spokes} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <BarChart data={metrics.campuses} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="name" stroke="var(--text-muted)" tick={{ fontSize: 11 }} tickLine={false} />
                     <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} domain={[0, 100]} unit="%" tickLine={false} />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0, 0, 0, 0.02)" }} />
                     <Bar dataKey="completionRate" name="Completion Rate" radius={[6, 6, 0, 0]}>
-                      {metrics.spokes.map((entry, index) => {
+                      {metrics.campuses.map((entry, index) => {
                         const colors = ["#3b529a", "#0ea5e9", "#10b981", "#8b5cf6"];
                         return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
                       })}
@@ -11209,7 +11227,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
                             {blocker.key}
                           </span>
                           <span style={{ fontSize: "10px", color: "var(--text-dim)", fontWeight: "700", textTransform: "uppercase" }}>
-                            {blocker.spokeName}
+                            {blocker.campusName}
                           </span>
                         </div>
                         <span style={{ color: "var(--text-main)", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -11254,10 +11272,10 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--border-glass)" }}>
                     <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", width: "40%" }}>Workstream / Standard Epic</th>
-                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>KLE Spoke (Live)</th>
-                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>COEP Spoke</th>
-                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>MMCOEP Spoke</th>
-                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>RIT Spoke</th>
+                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>KLE Campus (Live)</th>
+                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>COEP Campus</th>
+                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>MMCOEP Campus</th>
+                    <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>RIT Campus</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -11317,7 +11335,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             <DashboardCard
               title="Avg B2B Milestone Progress"
               value={`${avgB2BProgress}%`}
-              subtitle="Completion across Spokes"
+              subtitle="Completion across Campuses"
               progress={avgB2BProgress}
               themeColor="var(--primary)"
             />
@@ -11433,7 +11451,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
                               border: "1px solid var(--border-glass)",
                               borderRadius: "8px"
                             }}>
-                              {/* Spoke Header */}
+                              {/* Campus Header */}
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
                                 <span style={{ fontWeight: "700", color: "var(--text-main)" }}>
                                   <span><FaBuilding style={{ marginRight: "6px", color: "var(--primary)" }} /> {alloc.assignedTo}</span>
@@ -11450,7 +11468,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
                                 }}>{alloc.status}</span>
                               </div>
 
-                              {/* Spoke Timeline, Epic, and Progress */}
+                              {/* Campus Timeline, Epic, and Progress */}
                               {!isProposed ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", color: "var(--text-dim)" }}>
@@ -11867,7 +11885,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                   <span>Automated Deadline Auditor Scanner</span>
                 </h3>
                 <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "6px", lineHeight: "1.5" }}>
-                  Run a real-time audit across all active campus spoke spaces. The scanner checks the child deliverables progress, identifies breaches, marks project states, and prepares urgent warning email alerts for campus coordinators.
+                  Run a real-time audit across all active campus campus spaces. The scanner checks the child deliverables progress, identifies breaches, marks project states, and prepares urgent warning email alerts for campus coordinators.
                 </p>
               </div>
               <button
@@ -11979,7 +11997,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                           </div>
                         </td>
 
-                        {/* Multi-spoke Institution Allocations */}
+                        {/* Multi-campus Institution Allocations */}
                         <td colSpan={4} style={{ padding: "12px 16px" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                             {activeAllocations.length > 0 ? (
@@ -12063,7 +12081,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                                           cursor: "pointer"
                                         }}
                                       >
-                                        Alert Spoke
+                                        Alert Campus
                                       </button>
                                     </div>
                                   </div>
@@ -12071,7 +12089,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                               })
                             ) : (
                               <span style={{ fontSize: "12px", color: "var(--text-dim)", fontStyle: "italic", padding: "4px 0" }}>
-                                No campus space deployments assigned. Click '+ Allocate Spoke' to begin.
+                                No campus space deployments assigned. Click '+ Allocate Campus' to begin.
                               </span>
                             )}
                           </div>
@@ -12092,7 +12110,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                               cursor: "pointer"
                             }}
                           >
-                            + Allocate Spoke
+                            + Allocate Campus
                           </button>
                         </td>
                       </tr>
@@ -12120,7 +12138,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
 // CORPORATE PARTNER SPONSORSHIP PORTAL VIEW
 // ==========================================
 
-function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitProposal, triggerToast, sessionUser, spokes, tasks, meetings = [] }) {
+function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitProposal, triggerToast, sessionUser, campuses, tasks, meetings = [] }) {
   const [activeTab, setActiveTab] = useState("portfolio"); // "portfolio", "submit", "cohorts"
   
   // Form states
@@ -12149,10 +12167,10 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
     }
   };
 
-  const handleAssignCompanyMentor = async (projectId, spokeId, mentorId) => {
+  const handleAssignCompanyMentor = async (projectId, campusId, mentorId) => {
     if (!mentorId) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/spoke/${spokeId}/project-mentor`, { mentorId });
+      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/campus/${campusId}/project-mentor`, { mentorId });
       if (res.data && res.data.success) {
         triggerToast("Company Project Mentor assigned successfully!");
         if (onRefresh) onRefresh();
@@ -12226,7 +12244,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
     return sum + val;
   }, 0);
 
-  // Campus placements (Spokes where their projects are active/assigned)
+  // Campus placements (Campuses where their projects are active/assigned)
   const campusPlacements = sponsorProjects.filter(p => 
     p.allocations && p.allocations.length > 0
   ).length;
@@ -12349,12 +12367,12 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "12px" }}>
               {sponsorMeetings.map(meet => {
-                const spokeName = spokes.find(s => s.id === meet.campusId)?.name || "Unknown Campus";
+                const campusName = campuses.find(s => s.id === meet.campusId)?.name || "Unknown Campus";
                 return (
                   <div key={meet.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-glass)", borderRadius: "8px" }}>
                     <div>
                       <div style={{ fontSize: "10px", color: "#f59e0b", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
-                        {meet.cadenceType || "General Sync"} • {spokeName}
+                        {meet.cadenceType || "General Sync"} • {campusName}
                       </div>
                       <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-main)" }}>
                         {meet.title}
@@ -12387,7 +12405,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
         <DashboardCard
           title="Campus Placements"
           value={campusPlacements}
-          subtitle="Assigned to Spoke institutions"
+          subtitle="Assigned to Campus institutions"
           themeColor="var(--status-progress-text)"
         />
         <DashboardCard
@@ -12566,7 +12584,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                         {isAllocated ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                             {proj.allocations.map((alloc) => {
-                              const targetSpoke = spokes.find(s => s.id === alloc.targetCampusId);
+                              const targetCampus = campuses.find(s => s.id === alloc.targetCampusId);
                               const currFacultyMentor = alloc.facultyMentor;
                               const currProjectMentor = alloc.projectMentor;
                               
@@ -12582,7 +12600,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                                   gap: "8px"
                                 }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "750" }}>
-                                    <span style={{ color: "var(--primary)", display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBuilding /> {targetSpoke?.name || "Campus Spoke"}</span>
+                                    <span style={{ color: "var(--primary)", display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBuilding /> {targetCampus?.name || "Campus Campus"}</span>
                                     <span style={{ fontFamily: "var(--mono)", color: "var(--text-main)" }}>{alloc.assignedKey || "Key Assigned"}</span>
                                   </div>
                                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-dim)" }}>
@@ -12636,7 +12654,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                                       </select>
                                     ) : !currProjectMentor && !alloc.assignedKey ? (
                                       <span style={{ color: "var(--text-dim)", fontStyle: "italic", fontSize: "11px", marginTop: "4px" }}>
-                                        Awaiting Campus Spoke Acceptance...
+                                        Awaiting Campus Campus Acceptance...
                                       </span>
                                     ) : null}
                                   </div>
@@ -12647,7 +12665,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                         ) : (
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-dim)", fontSize: "12.5px" }}>
                             <span><FaClock /></span>
-                            <em>Proposed. Awaiting Central Moderator assignment to active campus spokes.</em>
+                            <em>Proposed. Awaiting Central Moderator assignment to active campus campuses.</em>
                           </div>
                         )}
                       </td>
@@ -12730,7 +12748,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             Submit Corporate Project Proposal
           </h3>
           <p style={{ margin: "0 0 24px 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Propose a new industry B2B engineering project. Central Moderators will review the proposal and assign it to student cohorts at KLE, COEP, MMCOEP, or RIT spokes.
+            Propose a new industry B2B engineering project. Central Moderators will review the proposal and assign it to student cohorts at KLE, COEP, MMCOEP, or RIT campuses.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -12989,22 +13007,22 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
 
       {activeTab === "cohorts" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px" }}>
-          {/* Spoke ranks */}
+          {/* Campus ranks */}
           <div className="glass-panel" style={{ padding: "24px" }}>
             <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)" }}>
               College Progress Leaderboard
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {spokes.map((spoke, idx) => {
+              {campuses.map((campus, idx) => {
                 const medal = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : "Rank";
-                // Sum completions by this spoke
-                const spokeTasks = tasks.filter(t => t.fields?.labels?.includes(CAMPUS_LABELS[spoke.id]));
-                const done = spokeTasks.filter(t => (t.fields?.status?.name || t.fields?.status || "") === "Done").length;
-                const total = spokeTasks.length;
+                // Sum completions by this campus
+                const campusTasks = tasks.filter(t => t.fields?.labels?.includes(CAMPUS_LABELS[campus.id]));
+                const done = campusTasks.filter(t => (t.fields?.status?.name || t.fields?.status || "") === "Done").length;
+                const total = campusTasks.length;
                 const pct = total > 0 ? Math.round((done / total) * 100) : 0; // 0% if no tasks yet
                 
                 return (
-                  <div key={spoke.id} style={{
+                  <div key={campus.id} style={{
                     display: "flex",
                     flexDirection: "column",
                     gap: "6px",
@@ -13017,7 +13035,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <span style={{ fontSize: "14px" }}>{medal}</span>
                         <span style={{ fontSize: "12px", fontWeight: "750", color: "var(--text-main)" }}>
-                          {spoke.name}
+                          {campus.name}
                         </span>
                       </div>
                       <span style={{ fontSize: "11px", fontFamily: "var(--mono)", color: "var(--text-main)", fontWeight: "700" }}>
@@ -13047,7 +13065,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                 FIP Campus Budget Share
               </h3>
               <p style={{ fontSize: "12.5px", color: "var(--text-muted)", lineHeight: "1.6" }}>
-                This card represents the total budget committed by **{companyName}** across the campus spokes. Allocations are partitioned to direct-hire and hardware deployment subsidies for active B2B deliverables.
+                This card represents the total budget committed by **{companyName}** across the campus campuses. Allocations are partitioned to direct-hire and hardware deployment subsidies for active B2B deliverables.
               </p>
             </div>
             
@@ -13105,7 +13123,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 {finalProgressTeams.map((team) => {
                   const linkedProj = sponsorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
-                  const targetSpoke = spokes.find(s => s.id === team.boardId);
+                  const targetCampus = campuses.find(s => s.id === team.boardId);
 
                   return (
                     <div key={team._id || team.id} style={{
@@ -13121,7 +13139,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                         <div>
                           <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "var(--text-main)" }}>{team.name}</h4>
                           <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: "650", display: "block", marginTop: "2px" }}>
-                            Institution Spoke: {targetSpoke?.name || "Campus Spoke"}
+                            Institution Campus: {targetCampus?.name || "Campus Campus"}
                           </span>
                         </div>
                         <span style={{
@@ -13308,15 +13326,15 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
 // COLLABORATIVE Sync Meetings PORTAL VIEW
 // ==========================================
 
-function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast, moderatorProjects = [], currentPersona = "moderator" }) {
+function MeetingsPortalView({ meetings, loading, onRefresh, campuses, triggerToast, moderatorProjects = [], currentPersona = "moderator" }) {
   // Map persona to campusId so coordinators are locked to their campus
-  const personaCampusMap = { "spoke-kle": "3", "spoke-coep": "101", "spoke-mmcoep": "102", "spoke-rit": "103" };
+  const personaCampusMap = { "campus-kle": "3", "campus-coep": "101", "campus-mmcoep": "102", "campus-rit": "103" };
   const coordinatorCampusId = personaCampusMap[currentPersona] || null;
   const isCoordinator = !!coordinatorCampusId;
 
-  const getSpokeProjectStatus = (spokeName) => {
-    const activeProjs = moderatorProjects.filter(p => p.assignedTo === spokeName && (p.status === "Active" || p.status.startsWith("Assigned") || p.status.includes("BREACHED")));
-    const proposedProjs = moderatorProjects.filter(p => p.assignedTo === spokeName && p.status === "Proposed");
+  const getCampusProjectStatus = (campusName) => {
+    const activeProjs = moderatorProjects.filter(p => p.assignedTo === campusName && (p.status === "Active" || p.status.startsWith("Assigned") || p.status.includes("BREACHED")));
+    const proposedProjs = moderatorProjects.filter(p => p.assignedTo === campusName && p.status === "Proposed");
     
     if (activeProjs.length > 0) {
       return `Active: ${activeProjs.map(p => p.company).join(", ")}`;
@@ -13845,7 +13863,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
 
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {filteredMeetings.map((meet) => {
-              const spokeName = spokes.find(s => s.id === meet.campusId)?.name || "Unknown Spoke";
+              const campusName = campuses.find(s => s.id === meet.campusId)?.name || "Unknown Campus";
               const isReminderActive = remindLoading === meet.id;
               
               return (
@@ -13869,7 +13887,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
                         textTransform: "uppercase",
                         letterSpacing: "0.5px"
                       }}>
-                        <span><FaBuilding style={{ marginRight: '6px', verticalAlign: 'middle' }} /> {spokeName}</span>
+                        <span><FaBuilding style={{ marginRight: '6px', verticalAlign: 'middle' }} /> {campusName}</span>
                       </span>
                       {meet.cadenceType && meet.cadenceType !== "General Sync" && (
                         <span style={{
@@ -13919,10 +13937,20 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: "14px", marginTop: "4px" }}>
                     <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                      {meet.link?.includes("meet.jit.si") ? (
-                        // Jitsi — open embedded in app
+                      {meet.link?.includes("meet.jit.si") || meet.link?.includes("meet.ffmuc.net") ? (
+                        // Jitsi — open in new tab
                         <button
-                          onClick={() => { setActiveJitsiMeeting(meet); setJitsiLoading(true); }}
+                          onClick={() => { 
+                            const meetLink = meet.link || "";
+                            const roomName = meetLink.includes("meet.jit.si/") 
+                               ? meetLink.split("meet.jit.si/")[1].split("?")[0] 
+                               : meetLink.includes("meet.ffmuc.net/") 
+                                 ? meetLink.split("meet.ffmuc.net/")[1].split("?")[0]
+                                 : `apnileap-sync-${meet.id}`;
+                            window.open(`https://meet.jit.si/${roomName}`, '_blank');
+                            setActiveJitsiMeeting(meet);
+                            setJitsiLoading(false);
+                          }}
                           className="btn-secondary"
                           style={{
                             fontSize: "12px", color: "var(--primary)",
@@ -13991,7 +14019,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
                           background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)",
                           color: "var(--text-muted)", fontWeight: "600", whiteSpace: "nowrap"
                         }}>
-                          🤖 Agent will auto-run 30 min after meeting ends
+                          🤖 Agent will auto-run when meeting ends
                         </span>
                       )}
                       {meet.reminderSentAt && (
@@ -14094,7 +14122,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
                 background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)",
                 color: "var(--text-main)", fontWeight: "700"
               }}>
-                🏫 {spokes.find(s => s.id === coordinatorCampusId)?.name || "Your Campus"}
+                🏫 {campuses.find(s => s.id === coordinatorCampusId)?.name || "Your Campus"}
                 <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "500", marginLeft: "8px" }}>(auto-assigned)</span>
               </div>
             ) : (
@@ -14105,8 +14133,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
                 onChange={(e) => setNewCampusId(e.target.value)}
                 style={{ width: "100%", padding: "10px 12px", fontSize: "13px" }}
               >
-                {spokes.map(s => {
-                  const status = getSpokeProjectStatus(s.name);
+                {campuses.map(s => {
+                  const status = getCampusProjectStatus(s.name);
                   return (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.key}) — [{status}]
@@ -14300,6 +14328,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
                       if (res.data.previewUrl) {
                         console.log("Email Preview URL:", res.data.previewUrl);
                       }
+                      triggerToast("🤖 Agent is now creating Jira tasks from action items...");
+                      await handleAutoProcess(meetId);
                       fetchMeetings(); // Refresh the UI to show the new generated notes
                     }
                   } catch(err) {
@@ -14333,52 +14363,17 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
             position: "relative"
           }}>
             {/* High-fidelity glowing loader overlay */}
-            {jitsiLoading && (
-              <div style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "#07090e",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "18px",
-                zIndex: 5
-              }} className="fade-in">
-                <div style={{
-                  width: "48px",
-                  height: "48px",
-                  border: "4px solid rgba(99, 102, 241, 0.1)",
-                  borderTopColor: "var(--primary)",
-                  borderRadius: "50%",
-                }} className="pulse-glow"></div>
-                <h4 style={{ color: "white", margin: 0, fontSize: "14px", fontWeight: "800", letterSpacing: "0.2px" }} className="pulse-glow">
-                  Establishing Secure Sync Channel...
-                </h4>
-                <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "12px", textAlign: "center", maxWidth: "300px", lineHeight: "1.4" }}>
-                  Initializing camera, microphone, and encryption systems.
+            <div style={{ padding: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", background: "#111827" }}>
+              <div style={{ background: "rgba(99, 102, 241, 0.1)", border: "1px solid rgba(99, 102, 241, 0.3)", borderRadius: "12px", padding: "30px", maxWidth: "400px" }}>
+                <h3 style={{ color: "white", marginTop: 0 }}>Meeting is in progress</h3>
+                <p style={{ color: "var(--text-dim)", fontSize: "14px", lineHeight: "1.5" }}>
+                  Your secure sync room has been opened in a new browser tab so you can log in as a moderator.
+                </p>
+                <p style={{ color: "var(--text-dim)", fontSize: "14px", lineHeight: "1.5" }}>
+                  When your meeting is finished, click the red <strong>"Close Sync Room"</strong> button at the top right to end the session and automatically trigger your Rovo AI Meeting Summary.
                 </p>
               </div>
-            )}
-
-            <iframe
-              id="jitsi-iframe"
-              src={(() => {
-                // Extract room name from the stored meeting link (e.g. https://meet.jit.si/ApniLeap-kle-demo-12345)
-                // so the app and the email button join the SAME room
-                const meetLink = activeJitsiMeeting.link || "";
-                const roomName = meetLink.includes("meet.jit.si/")
-                  ? meetLink.split("meet.jit.si/")[1].split("?")[0]
-                  : `apnileap-sync-${activeJitsiMeeting.id}`;
-                return `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false`;
-              })()}
-              style={{ width: "100%", height: "100%", border: "none" }}
-              allow="camera; microphone; fullscreen; display-capture; autoplay"
-              onLoad={() => setJitsiLoading(false)}
-            />
+            </div>
           </div>
         </div>
       )}
@@ -14387,30 +14382,30 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   );
 }
 
-function ProjectManagerDashboardView({ projects = [], loading, onRefresh, triggerToast, spokes = [], onDeleteProject }) {
-  const [spokeMentorsMap, setSpokeMentorsMap] = useState({});
+function ProjectManagerDashboardView({ projects = [], loading, onRefresh, triggerToast, campuses = [], onDeleteProject }) {
+  const [campusMentorsMap, setCampusMentorsMap] = useState({});
   const [companyMentorsMap, setCompanyMentorsMap] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // Fetch mentors for all spokes
-    const fetchSpokeMentors = async () => {
+    // Fetch mentors for all campuses
+    const fetchCampusMentors = async () => {
       const map = {};
-      await Promise.all(spokes.map(async (spoke) => {
+      await Promise.all(campuses.map(async (campus) => {
         try {
-          const res = await axios.get(`http://localhost:5001/api/spokes/${spoke.id}/mentors`);
-          map[spoke.id] = res.data;
+          const res = await axios.get(`http://localhost:5001/api/campuses/${campus.id}/mentors`);
+          map[campus.id] = res.data;
         } catch (err) {
-          console.error(`Failed to fetch mentors for spoke ${spoke.id}`, err);
+          console.error(`Failed to fetch mentors for campus ${campus.id}`, err);
         }
       }));
-      setSpokeMentorsMap(map);
+      setCampusMentorsMap(map);
     };
 
-    if (spokes.length > 0) {
-      fetchSpokeMentors();
+    if (campuses.length > 0) {
+      fetchCampusMentors();
     }
-  }, [spokes]);
+  }, [campuses]);
 
   useEffect(() => {
     // Fetch mentors for all unique companies
@@ -14433,10 +14428,10 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
     }
   }, [projects]);
 
-  const handleAssignFacultyMentor = async (projectId, spokeId, mentorId) => {
+  const handleAssignFacultyMentor = async (projectId, campusId, mentorId) => {
     if (!mentorId) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/spoke/${spokeId}/faculty-mentor`, { mentorId });
+      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/campus/${campusId}/faculty-mentor`, { mentorId });
       if (res.data && res.data.success) {
         triggerToast("College Faculty Mentor assigned successfully!");
         if (onRefresh) onRefresh();
@@ -14447,10 +14442,10 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
     }
   };
 
-  const handleAssignProjectMentor = async (projectId, spokeId, mentorId) => {
+  const handleAssignProjectMentor = async (projectId, campusId, mentorId) => {
     if (!mentorId) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/spoke/${spokeId}/project-mentor`, { mentorId });
+      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/campus/${campusId}/project-mentor`, { mentorId });
       if (res.data && res.data.success) {
         triggerToast("Company Project Mentor assigned successfully!");
         if (onRefresh) onRefresh();
@@ -14577,8 +14572,8 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
                       {isAllocated ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                           {proj.allocations.map(alloc => {
-                            const targetSpoke = spokes.find(s => s.id === alloc.targetCampusId);
-                            const mentors = spokeMentorsMap[alloc.targetCampusId] || [];
+                            const targetCampus = campuses.find(s => s.id === alloc.targetCampusId);
+                            const mentors = campusMentorsMap[alloc.targetCampusId] || [];
                             const cMentors = companyMentorsMap[proj.company] || [];
 
                             return (
@@ -14594,7 +14589,7 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
                               }}>
                                 <div>
                                   <div style={{ fontWeight: "750", color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <FaBuilding size={14} /> {targetSpoke?.name || "College"}
+                                    <FaBuilding size={14} /> {targetCampus?.name || "College"}
                                   </div>
                                   <div style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "4px" }}>
                                     Status: <strong style={{ color: alloc.status === "Active" ? "var(--status-progress-text)" : "var(--text-muted)" }}>{alloc.status}</strong>
@@ -14687,7 +14682,7 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
 function FacultyMentorDashboardView({ 
   sessionUser, 
   triggerToast, 
-  spokes, 
+  campuses, 
   handleUpdateSubmissionStatus, 
   handleDeleteSubmission, 
   fetchAllSubmissions,
@@ -14699,7 +14694,7 @@ function FacultyMentorDashboardView({
   const [assignedProjects, setAssignedProjects] = useState([]);
   const [existingTeams, setExistingTeams] = useState([]);
   const [students, setStudents] = useState([]);
-  const [spokeMentors, setSpokeMentors] = useState([]);
+  const [campusMentors, setCampusMentors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Form states
@@ -14711,7 +14706,7 @@ function FacultyMentorDashboardView({
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
 
   const mentorId = sessionUser?._id;
-  const spokeId = sessionUser?.spokeId || "3"; // KLE by default
+  const campusId = sessionUser?.campusId || "3"; // KLE by default
 
   const fetchMentorData = async () => {
     if (!mentorId) return;
@@ -14721,13 +14716,13 @@ function FacultyMentorDashboardView({
       const [projectsRes, teamsRes, studentsRes, mentorsRes] = await Promise.all([
         axios.get(`http://localhost:5001/api/mentors/${mentorId}/projects`),
         axios.get(`http://localhost:5001/api/teams?mentorId=${mentorId}`),
-        axios.get(`http://localhost:5001/api/spokes/${spokeId}/students`),
-        axios.get(`http://localhost:5001/api/spokes/${spokeId}/mentors`)
+        axios.get(`http://localhost:5001/api/campuses/${campusId}/students`),
+        axios.get(`http://localhost:5001/api/campuses/${campusId}/mentors`)
       ]);
       setAssignedProjects(projectsRes.data);
       setExistingTeams(teamsRes.data);
       setStudents(studentsRes.data);
-      setSpokeMentors(mentorsRes.data);
+      setCampusMentors(mentorsRes.data);
     } catch (err) {
       console.error("Failed to load faculty mentor data:", err);
       triggerToast("Failed to retrieve dashboard data.", "error");
@@ -14738,7 +14733,7 @@ function FacultyMentorDashboardView({
 
   useEffect(() => {
     fetchMentorData();
-  }, [mentorId, spokeId]);
+  }, [mentorId, campusId]);
 
   const handleStudentCheckboxChange = (studentId) => {
     setSelectedStudentIds(prev => {
@@ -14792,7 +14787,7 @@ function FacultyMentorDashboardView({
 
     const teamLeaderObj = selectedStudentsObjects.find(s => s.accountId === teamLeaderId);
 
-    const subMentorObj = spokeMentors.find(m => m.accountId === subMentorId);
+    const subMentorObj = campusMentors.find(m => m.accountId === subMentorId);
     let subMentorPayload = null;
     if (subMentorObj) {
       subMentorPayload = {
@@ -14805,7 +14800,7 @@ function FacultyMentorDashboardView({
 
     const payload = {
       name: teamName,
-      boardId: spokeId,
+      boardId: campusId,
       members: selectedStudentsObjects,
       mentor: {
         accountId: mentorId,
@@ -14852,7 +14847,7 @@ function FacultyMentorDashboardView({
   };
 
   const selectedStudentsObjects = students.filter(s => selectedStudentIds.includes(s.accountId));
-  const subMentorOptions = spokeMentors.filter(m => m.accountId !== mentorId);
+  const subMentorOptions = campusMentors.filter(m => m.accountId !== mentorId);
 
   const handleSubmitFinalProgressClick = async (teamId) => {
     const reportUrl = prompt("Please enter the Final Progress Report URL (e.g., GitHub repository, PDF report):");
@@ -14878,9 +14873,9 @@ function FacultyMentorDashboardView({
     }
   };
 
-  const spokeSubmissions = allSubmissions.filter(sub => {
+  const campusSubmissions = allSubmissions.filter(sub => {
     const isMember = students.some(s => s.displayName?.toLowerCase() === sub.studentName?.toLowerCase());
-    const targetKeyword = spokeId === "3" ? "kle" : spokeId === "101" ? "coep" : spokeId === "102" ? "mmcoep" : "rit";
+    const targetKeyword = campusId === "3" ? "kle" : campusId === "101" ? "coep" : campusId === "102" ? "mmcoep" : "rit";
     const subNameLower = sub.studentName?.toLowerCase() || "";
     return isMember || subNameLower.includes(targetKeyword) || subNameLower.includes("student");
   });
@@ -14933,13 +14928,13 @@ function FacultyMentorDashboardView({
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           
           {/* Upcoming Campus Syncs */}
-          {meetings.filter(m => m.campusId === String(sessionUser?.spokeId || sessionUser?.campusId || "3")).length > 0 && (
+          {meetings.filter(m => m.campusId === String(sessionUser?.campusId || sessionUser?.campusId || "3")).length > 0 && (
             <div className="glass-panel" style={{ padding: "16px 24px", borderLeft: "4px solid #f59e0b" }}>
               <h3 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
                 <FaCalendarAlt style={{ color: "#f59e0b" }} /> Upcoming Meetings & Reviews
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {meetings.filter(m => m.campusId === String(sessionUser?.spokeId || sessionUser?.campusId || "3")).map(meet => (
+                {meetings.filter(m => m.campusId === String(sessionUser?.campusId || sessionUser?.campusId || "3")).map(meet => (
                   <div key={meet.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-glass)", borderRadius: "8px" }}>
                     <div>
                       <div style={{ fontSize: "10px", color: "#f59e0b", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
@@ -15032,7 +15027,7 @@ function FacultyMentorDashboardView({
                     </label>
                   ))}
                   {students.length === 0 && (
-                    <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>No students found in your campus spoke.</span>
+                    <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>No students found in your campus campus.</span>
                   )}
                 </div>
               </div>
@@ -15309,7 +15304,7 @@ function FacultyMentorDashboardView({
       <div className="glass-panel" style={{ padding: "24px", marginTop: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
           <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-            <FaClipboardList size={18} style={{ color: "var(--accent)" }} /> Spoke Deliverables Verification Queue
+            <FaClipboardList size={18} style={{ color: "var(--accent)" }} /> Campus Deliverables Verification Queue
           </h3>
           <button
             onClick={handleRunAiVerificationSweep}
@@ -15331,7 +15326,7 @@ function FacultyMentorDashboardView({
             <span>🤖 Run AI Verification Sweep</span>
           </button>
         </div>
-        {spokeSubmissions.length > 0 ? (
+        {campusSubmissions.length > 0 ? (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", color: "var(--text-main)", textAlign: "left" }}>
               <thead>
@@ -15345,7 +15340,7 @@ function FacultyMentorDashboardView({
                 </tr>
               </thead>
               <tbody>
-                {spokeSubmissions.map((sub) => {
+                {campusSubmissions.map((sub) => {
                   const badgeBg = sub.status === "Approved" ? "rgba(45, 212, 191, 0.08)" : sub.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.08)" : "rgba(251, 146, 60, 0.08)";
                   const badgeColor = sub.status === "Approved" ? "#2dd4bf" : sub.status === "Re-work Requested" ? "#ef4444" : "var(--accent)";
                   const badgeBorder = sub.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.2)" : sub.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)";
@@ -15531,7 +15526,7 @@ function FacultyMentorDashboardView({
             color: "var(--text-dim)",
             fontSize: "13px"
           }}>
-            No deliverables have been submitted by Spoke student developers for review yet.
+            No deliverables have been submitted by Campus student developers for review yet.
           </div>
         )}
       </div>
