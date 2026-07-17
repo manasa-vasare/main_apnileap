@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import VolunteerDashboardView from "./components/VolunteerDashboardView";
 import {
   DragDropContext,
   Droppable,
@@ -1026,6 +1027,7 @@ function App() {
     else if (email === "coordinator@coep.edu") password = "coep123";
     else if (email === "coordinator@mmcoep.edu") password = "mmcoep123";
     else if (email === "coordinator@rit.edu") password = "rit123";
+    else if (email === "volunteer@apnileap.com") password = "password";
 
     setLoginPassword(password);
     setLoginError("");
@@ -4604,7 +4606,7 @@ function App() {
                       background: "rgba(99, 102, 241, 0.15)",
                       border: "1px solid rgba(99, 102, 241, 0.3)",
                       color: "white",
-                      fontWeight: "600",
+                    fontWeight: "600",
                       fontSize: "10px",
                       cursor: "pointer",
                       transition: "var(--transition-smooth)"
@@ -4612,6 +4614,31 @@ function App() {
                     title="Connect as RIT Student Developer"
                   >
                     RIT Student
+                  </button>
+                </div>
+
+                {/* Volunteer Mentors Grid */}
+                <div style={{ fontSize: "11px", fontWeight: "800", color: "rgba(255, 255, 255, 0.6)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px", borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "10px" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBriefcase style={{ color: "#ec4899" }} /> Volunteer Mentors</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickConnect("volunteer@apnileap.com")}
+                    style={{
+                      padding: "7px 4px",
+                      borderRadius: "6px",
+                      background: "rgba(236, 72, 153, 0.15)",
+                      border: "1px solid rgba(236, 72, 153, 0.3)",
+                      color: "white",
+                      fontWeight: "600",
+                      fontSize: "10px",
+                      cursor: "pointer",
+                      transition: "var(--transition-smooth)"
+                    }}
+                    title="Connect as Volunteer Mentor"
+                  >
+                    Demo Volunteer
                   </button>
                 </div>
               </div>
@@ -6488,7 +6515,9 @@ function App() {
             {activeView === "dashboard" && (
               <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
                 
-                {sessionUser?.role === "Student Developer" ? (
+                {sessionUser?.role === "Volunteer Mentor" ? (
+                  <VolunteerDashboardView activeWorkspace={activeWorkspace} />
+                ) : sessionUser?.role === "Student Developer" ? (
                   // ==========================================
                   // 💻 STUDENT DEVELOPER DASHBOARD VIEW
                   // ==========================================
